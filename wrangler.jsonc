@@ -4,5 +4,17 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "vars": {
+    "SLOW_QUERY_MS": "0"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lanterninha",
+      "database_id": "9f3f154b-66fc-4254-b348-3ee34960a750",
+      // Flat SQL files copied from drizzle/ by db/sync-migrations.ts.
+      "migrations_dir": "migrations"
+    }
+  ]
 }

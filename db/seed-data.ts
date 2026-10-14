@@ -1,7 +1,7 @@
 // Demo seed data. Venues are real Brazilian cinemas (addresses and coordinates
 // are approximate); every review and username is fictional and generated.
-import type { Cinema, Criterion, Review, Room, Tag } from '~/lib/domain'
-import { TAGS } from '~/lib/domain'
+import type { Cinema, Criterion, Review, Room, Tag } from '../src/lib/domain.ts'
+import { TAGS } from '../src/lib/domain.ts'
 
 export const CINEMAS: Cinema[] = [
   { id: 'cinemark-eldorado', name: 'Cinemark Eldorado', chain: 'Cinemark', city: 'São Paulo', state: 'SP', neighborhood: 'Pinheiros', address: 'Av. Rebouças, 3970', lat: -23.5726, lng: -46.696 },

@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "db/**/*.ts", "vite.config.ts", "drizzle.config.ts", "worker-configuration.d.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
@@ -12,7 +12,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client"],
     "paths": { "~/*": ["./src/*"] }
   }
 }

@@ -1,121 +1,218 @@
-// The only module that touches persistence. The `.server.ts` suffix puts it
+// The only module that queries the database. The `.server.ts` suffix puts it
 // behind Start's import protection: importing it from client code fails the build.
-//
-// Storage is an in-memory array seeded at boot, which keeps the demo
-// dependency-free on every runtime. Swap these function bodies for D1,
-// Postgres or KV without touching routes or server functions.
-import type { Cinema, Criterion, Review, ReviewWithRoom, RoomStats, RoomSummary, Tag } from '~/lib/domain'
+import { and, asc, count, desc, eq, gte, sql, type SQL } from 'drizzle-orm'
+import type { Criterion, Review, ReviewWithRoom, RoomStats, RoomSummary, Tag } from '~/lib/domain'
 import { CRITERION_IDS, RATINGS } from '~/lib/domain'
 import type { ExploreSearch, NewReview } from '~/lib/schemas'
-import { CINEMAS, ROOMS, SEED_REVIEWS } from './seed.server'
-
-const reviews: Review[] = [...SEED_REVIEWS]
-const cinemasById = new Map(CINEMAS.map((c) => [c.id, c]))
-const roomsById = new Map(ROOMS.map((r) => [r.id, r]))
+import { db } from './db/client.server'
+import { cinema, review, room, user } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const round1 = (n: number | null) => (n == null ? null : Math.round(n * 10) / 10)
 
 function average(xs: number[]) {
   if (xs.length === 0) return null
-  return Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10
+  return round1(xs.reduce((a, b) => a + b, 0) / xs.length)
 }
 
-const newestFirst = (a: Review, b: Review) => b.createdAt.localeCompare(a.createdAt)
+/** Calendar day in São Paulo, used for the one-review-per-room-per-day rule. */
+const saoPauloDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-function reviewsFor(roomId: string) {
-  return reviews.filter((r) => r.roomId === roomId)
+// ---------- Room summaries ----------
+
+const roomStats = db
+  .select({
+    roomId: review.roomId,
+    average: sql<number>`avg(${review.rating})`.as('average'),
+    reviewCount: sql<number>`count(*)`.as('review_count'),
+    lastReviewAt: sql<number>`max(${review.createdAt})`.as('last_review_at'),
+  })
+  .from(review)
+  .groupBy(review.roomId)
+  .as('room_stats')
+
+const reviewCountOrZero = sql<number>`coalesce(${roomStats.reviewCount}, 0)`
+
+const summaryFields = {
+  id: room.id,
+  cinemaId: room.cinemaId,
+  name: room.name,
+  format: room.format,
+  seats: room.seats,
+  projection: room.projection,
+  sound: room.sound,
+  accessible: room.accessible,
+  cinema: {
+    id: cinema.id,
+    name: cinema.name,
+    chain: cinema.chain,
+    city: cinema.city,
+    state: cinema.state,
+    neighborhood: cinema.neighborhood,
+    address: cinema.address,
+    lat: cinema.lat,
+    lng: cinema.lng,
+  },
+  average: roomStats.average,
+  reviewCount: reviewCountOrZero,
 }
 
-function summarize(roomId: string): RoomSummary | null {
-  const room = roomsById.get(roomId)
-  const cinema = room && cinemasById.get(room.cinemaId)
-  if (!room || !cinema) return null
-  const ratings = reviewsFor(room.id).map((r) => r.rating)
-  return { ...room, cinema, average: average(ratings), reviewCount: ratings.length }
+function selectSummaries(where?: SQL) {
+  return db
+    .select(summaryFields)
+    .from(room)
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .leftJoin(roomStats, eq(roomStats.roomId, room.id))
+    .where(where)
+    .$dynamic()
 }
 
-function allSummaries() {
-  return ROOMS.map((r) => summarize(r.id)!)
-}
+type SummaryRow = Awaited<ReturnType<typeof selectSummaries>>[number]
+const toSummary = (r: SummaryRow): RoomSummary => ({ ...r, average: round1(r.average) })
 
-function withRoom(review: Review): ReviewWithRoom {
-  const s = summarize(review.roomId)!
-  return {
-    ...review,
-    room: { id: s.id, name: s.name, format: s.format },
-    cinema: { id: s.cinema.id, name: s.cinema.name, city: s.cinema.city, state: s.cinema.state },
+export async function searchRooms(filters: ExploreSearch) {
+  const conditions: SQL[] = []
+  if (filters.state) conditions.push(eq(cinema.state, filters.state))
+  if (filters.city) conditions.push(eq(cinema.city, filters.city))
+  if (filters.format) conditions.push(eq(room.format, filters.format))
+  if (filters.q) {
+    const pattern = `%${fold(filters.q).replace(/[\\%_]/g, '\\$&')}%`
+    conditions.push(sql`${room.searchText} LIKE ${pattern} ESCAPE '\\'`)
   }
-}
+  const where = and(...conditions)
 
-export function searchRooms(filters: ExploreSearch) {
-  const q = filters.q ? fold(filters.q) : null
-  const matches = allSummaries().filter((s) => {
-    if (filters.state && s.cinema.state !== filters.state) return false
-    if (filters.city && fold(s.cinema.city) !== fold(filters.city)) return false
-    if (filters.format && s.format !== filters.format) return false
-    if (q) {
-      const haystack = fold(
-        `${s.name} ${s.cinema.name} ${s.cinema.chain} ${s.cinema.neighborhood} ${s.cinema.city}`,
-      )
-      if (!haystack.includes(q)) return false
-    }
-    return true
-  })
+  const [{ total }] = (await db
+    .select({ total: count() })
+    .from(room)
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .where(where)) as [{ total: number }]
 
-  const lastReviewAt = (id: string) =>
-    reviewsFor(id).reduce((max, r) => (r.createdAt > max ? r.createdAt : max), '')
-  matches.sort((a, b) => {
-    switch (filters.sort) {
-      case 'rating':
-        return (b.average ?? 0) - (a.average ?? 0) || b.reviewCount - a.reviewCount
-      case 'reviews':
-        return b.reviewCount - a.reviewCount
-      case 'recent':
-        return lastReviewAt(b.id).localeCompare(lastReviewAt(a.id))
-      case 'name':
-        return (
-          a.cinema.name.localeCompare(b.cinema.name, 'pt-BR') || a.name.localeCompare(b.name, 'pt-BR')
-        )
-    }
-  })
-
-  const total = matches.length
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const page = Math.min(filters.page, pageCount)
+  const order = {
+    rating: [desc(sql`coalesce(${roomStats.average}, 0)`), desc(reviewCountOrZero)],
+    reviews: [desc(reviewCountOrZero), asc(cinema.name)],
+    recent: [desc(sql`coalesce(${roomStats.lastReviewAt}, 0)`)],
+    name: [asc(cinema.name), asc(room.name)],
+  }[filters.sort]
+
+  const rows = await selectSummaries(where)
+    .orderBy(...order)
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE)
+
+  return { rooms: rows.map(toSummary), total, page, pageCount }
+}
+
+export async function listCities() {
+  return db
+    .select({ city: cinema.city, state: cinema.state, rooms: count(room.id) })
+    .from(room)
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .groupBy(cinema.city, cinema.state)
+    .orderBy(desc(count(room.id)), asc(cinema.city))
+}
+
+export async function getRoom(id: string) {
+  const [row] = await selectSummaries(eq(room.id, id)).limit(1)
+  return row ? toSummary(row) : null
+}
+
+export async function getTopRooms(limit: number) {
+  const rows = await selectSummaries(gte(roomStats.reviewCount, 4))
+    .orderBy(desc(roomStats.average))
+    .limit(limit)
+  return rows.map(toSummary)
+}
+
+export async function getCinema(id: string) {
+  const [found] = await db.select().from(cinema).where(eq(cinema.id, id)).limit(1)
+  if (!found) return null
+  const rooms = await selectSummaries(eq(room.cinemaId, id)).orderBy(asc(room.name))
+  return { cinema: found, rooms: rooms.map(toSummary) }
+}
+
+// ---------- Reviews ----------
+
+const reviewFields = {
+  id: review.id,
+  roomId: review.roomId,
+  username: sql<string>`coalesce(${user.username}, ${user.name})`,
+  rating: review.rating,
+  picture: review.picture,
+  sound: review.sound,
+  comfort: review.comfort,
+  cleanliness: review.cleanliness,
+  row: review.row,
+  film: review.film,
+  body: review.body,
+  tags: review.tags,
+  createdAt: review.createdAt,
+}
+
+type ReviewRow = Awaited<ReturnType<typeof selectReviews>>[number]
+
+function toReview({ picture, sound, comfort, cleanliness, createdAt, ...rest }: ReviewRow): Review {
   return {
-    rooms: matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    total,
-    page,
-    pageCount,
+    ...rest,
+    criteria: { picture, sound, comfort, cleanliness },
+    createdAt: createdAt.toISOString(),
   }
 }
 
-export function listCities() {
-  const counts = new Map<string, { city: string; state: Cinema['state']; rooms: number }>()
-  for (const room of ROOMS) {
-    const { city, state } = cinemasById.get(room.cinemaId)!
-    const entry = counts.get(city) ?? { city, state, rooms: 0 }
-    entry.rooms++
-    counts.set(city, entry)
-  }
-  return [...counts.values()].sort((a, b) => b.rooms - a.rooms)
+function selectReviews(where?: SQL) {
+  return db
+    .select(reviewFields)
+    .from(review)
+    .innerJoin(user, eq(review.userId, user.id))
+    .where(where)
+    .$dynamic()
 }
 
-export function getRoom(id: string) {
-  return summarize(id)
+function selectReviewsWithRoom(where?: SQL) {
+  return db
+    .select({
+      ...reviewFields,
+      room: { id: room.id, name: room.name, format: room.format },
+      cinema: { id: cinema.id, name: cinema.name, city: cinema.city, state: cinema.state },
+    })
+    .from(review)
+    .innerJoin(user, eq(review.userId, user.id))
+    .innerJoin(room, eq(review.roomId, room.id))
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .where(where)
+    .$dynamic()
 }
 
-export function getRoomReviews(roomId: string, sort: 'recent' | 'best' | 'worst') {
-  const list = reviewsFor(roomId)
-  if (sort === 'best') return list.sort((a, b) => b.rating - a.rating || newestFirst(a, b))
-  if (sort === 'worst') return list.sort((a, b) => a.rating - b.rating || newestFirst(a, b))
-  return list.sort(newestFirst)
+const toReviewWithRoom = ({
+  room: r,
+  cinema: c,
+  ...rest
+}: Awaited<ReturnType<typeof selectReviewsWithRoom>>[number]): ReviewWithRoom => ({
+  ...toReview(rest),
+  room: r,
+  cinema: c,
+})
+
+export async function getRoomReviews(roomId: string, sort: 'recent' | 'best' | 'worst') {
+  const order = {
+    recent: [desc(review.createdAt)],
+    best: [desc(review.rating), desc(review.createdAt)],
+    worst: [asc(review.rating), desc(review.createdAt)],
+  }[sort]
+  const rows = await selectReviews(eq(review.roomId, roomId)).orderBy(...order)
+  return rows.map(toReview)
 }
 
-export function getRoomStats(roomId: string): RoomStats {
-  const list = reviewsFor(roomId)
+export async function getRecentReviews(limit: number) {
+  const rows = await selectReviewsWithRoom().orderBy(desc(review.createdAt)).limit(limit)
+  return rows.map(toReviewWithRoom)
+}
+
+export async function getRoomStats(roomId: string): Promise<RoomStats> {
+  const list = (await selectReviews(eq(review.roomId, roomId))).map(toReview)
 
   const histogram: Record<string, number> = Object.fromEntries(RATINGS.map((n) => [String(n), 0]))
   for (const r of list) histogram[String(r.rating)] = (histogram[String(r.rating)] ?? 0) + 1
@@ -151,75 +248,100 @@ export function getRoomStats(roomId: string): RoomStats {
   }
 }
 
-export function getCinema(id: string) {
-  const cinema = cinemasById.get(id)
-  if (!cinema) return null
-  const rooms = ROOMS.filter((r) => r.cinemaId === id).map((r) => summarize(r.id)!)
-  return { cinema, rooms }
-}
-
-export function getRecentReviews(limit: number) {
-  return [...reviews].sort(newestFirst).slice(0, limit).map(withRoom)
-}
-
-export function getTopRooms(limit: number) {
-  return allSummaries()
-    .filter((s) => s.reviewCount >= 4)
-    .sort((a, b) => (b.average ?? 0) - (a.average ?? 0))
-    .slice(0, limit)
-}
-
-export function getTotals() {
-  return {
-    rooms: ROOMS.length,
-    cinemas: CINEMAS.length,
-    cities: new Set(CINEMAS.map((c) => c.city)).size,
-    reviews: reviews.length,
-  }
-}
-
-export function getUserProfile(username: string) {
-  const list = reviews.filter((r) => r.username === username).sort(newestFirst)
-  if (list.length === 0) return null
-  const cities = new Set(list.map((r) => cinemasById.get(roomsById.get(r.roomId)!.cinemaId)!.city))
+export async function getUserProfile(username: string) {
+  const reviews = (
+    await selectReviewsWithRoom(eq(user.username, username)).orderBy(desc(review.createdAt))
+  ).map(toReviewWithRoom)
+  if (reviews.length === 0) return null
   return {
     username,
-    reviews: list.map(withRoom),
-    average: average(list.map((r) => r.rating)),
-    cities: [...cities],
+    reviews,
+    average: average(reviews.map((r) => r.rating)),
+    cities: [...new Set(reviews.map((r) => r.cinema.city))],
   }
 }
 
-export function getCinemaLocations() {
-  return CINEMAS.map((cinema) => {
-    const rooms = ROOMS.filter((r) => r.cinemaId === cinema.id)
-    const ratings = rooms.flatMap((r) => reviewsFor(r.id).map((rv) => rv.rating))
-    return { ...cinema, roomCount: rooms.length, average: average(ratings), reviewCount: ratings.length }
-  })
+// ---------- Aggregates ----------
+
+export async function getTotals() {
+  const [[rooms], [cinemas], [cities], [reviews]] = await db.batch([
+    db.select({ n: count() }).from(room),
+    db.select({ n: count() }).from(cinema),
+    db.select({ n: sql<number>`count(distinct ${cinema.city})` }).from(cinema),
+    db.select({ n: count() }).from(review),
+  ])
+  return { rooms: rooms!.n, cinemas: cinemas!.n, cities: cities!.n, reviews: reviews!.n }
 }
 
-export function getSitemapIds() {
-  return { rooms: ROOMS.map((r) => r.id), cinemas: CINEMAS.map((c) => c.id) }
+export async function getCinemaLocations() {
+  const rows = await db
+    .select({
+      id: cinema.id,
+      name: cinema.name,
+      chain: cinema.chain,
+      city: cinema.city,
+      state: cinema.state,
+      neighborhood: cinema.neighborhood,
+      address: cinema.address,
+      lat: cinema.lat,
+      lng: cinema.lng,
+      roomCount: sql<number>`count(distinct ${room.id})`,
+      average: sql<number | null>`avg(${review.rating})`,
+      reviewCount: count(review.id),
+    })
+    .from(cinema)
+    .leftJoin(room, eq(room.cinemaId, cinema.id))
+    .leftJoin(review, eq(review.roomId, room.id))
+    .groupBy(cinema.id)
+  return rows.map((r) => ({ ...r, average: round1(r.average) }))
+}
+
+export async function getSitemapIds() {
+  const [rooms, cinemas] = await db.batch([
+    db.select({ id: room.id }).from(room),
+    db.select({ id: cinema.id }).from(cinema),
+  ])
+  return { rooms: rooms.map((r) => r.id), cinemas: cinemas.map((c) => c.id) }
+}
+
+// ---------- Writes ----------
+
+/** Drizzle wraps driver errors (DrizzleQueryError), so walk the `cause` chain. */
+function isUniqueViolation(error: unknown): boolean {
+  for (let e = error; e instanceof Error; e = e.cause) {
+    if (e.message.includes('UNIQUE constraint failed')) return true
+  }
+  return false
 }
 
 export type CreateReviewResult =
-  | { ok: true; review: Review }
+  | { ok: true; id: string; roomId: string }
   | { ok: false; reason: 'unknown-room' | 'duplicate' }
 
-export function createReview(username: string, input: NewReview): CreateReviewResult {
-  if (!roomsById.has(input.roomId)) return { ok: false, reason: 'unknown-room' }
-  const today = new Date().toISOString().slice(0, 10)
-  const duplicate = reviews.some(
-    (r) => r.username === username && r.roomId === input.roomId && r.createdAt.startsWith(today),
-  )
-  if (duplicate) return { ok: false, reason: 'duplicate' }
+export async function createReview(userId: string, input: NewReview): Promise<CreateReviewResult> {
+  const [exists] = await db.select({ id: room.id }).from(room).where(eq(room.id, input.roomId)).limit(1)
+  if (!exists) return { ok: false, reason: 'unknown-room' }
 
-  const review: Review = {
-    ...input,
-    id: crypto.randomUUID(),
-    username,
-    createdAt: new Date().toISOString(),
+  const now = new Date()
+  const id = crypto.randomUUID()
+  try {
+    await db.insert(review).values({
+      id,
+      roomId: input.roomId,
+      userId,
+      rating: input.rating,
+      ...input.criteria,
+      row: input.row,
+      film: input.film,
+      body: input.body,
+      tags: input.tags,
+      day: saoPauloDay.format(now),
+      createdAt: now,
+    })
+  } catch (error) {
+    // `review_one_per_day_idx` enforces one review per user, room and day.
+    if (isUniqueViolation(error)) return { ok: false, reason: 'duplicate' }
+    throw error
   }
-  reviews.push(review)
-  return { ok: true, review }
+  return { ok: true, id, roomId: input.roomId }
 }

@@ -112,7 +112,8 @@ textarea { resize: vertical; }
 .totals dd { margin: 0; font: 900 2rem/1.1 var(--display); color: var(--ink); }
 .totals-stub { display: flex; flex-direction: column; justify-content: center; height: 100%; gap: 4px; }
 .totals-stub .ticket-kicker { margin: 0; }
-.totals-stub strong { font: 900 1.5rem/1 var(--display); color: var(--ticket-red); }
+.totals-stub { text-decoration: none; }
+.totals-stub strong { font: 700 1.05rem/1.2 var(--display); color: var(--ticket-red); }
 @media (max-width: 640px) { .totals-ticket { --stub: 72px; } .totals-stub { flex-direction: row; align-items: center; gap: 12px; } }
 
 /* Layout */
@@ -350,3 +351,5 @@ p.form-errors { padding-left: 0; }
   .review { --stub: 72px; }
   .totals-ticket { --stub: 64px; }
 }
+
+.auth-tabs { display: inline-flex; margin-bottom: 18px; }

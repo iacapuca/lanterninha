@@ -99,7 +99,7 @@ function NearbyPage() {
         </ol>
 
         <aside className="panel">
-          <svg viewBox="0 0 400 400" className="dot-map" role="img" aria-label="Cinemas no mapa do Brasil">
+          <svg viewBox="0 0 400 400" className="dot-map" role="img" aria-label="Cinemas no mapa">
             {cinemas.map((c) => {
               const { x, y } = project(c)
               return (

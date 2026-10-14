@@ -9,8 +9,8 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
-import { getViewer, signOut } from '~/functions/session.functions'
+import { getViewer } from '~/functions/session.functions'
+import { authClient } from '~/lib/auth-client'
 import appCss from '~/styles.css?url'
 
 export const Route = createRootRoute({
@@ -21,7 +21,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Lanterninha — avaliações de salas de cinema do Brasil' },
+      { title: 'Lanterninha — avaliações de salas de cinema' },
       {
         name: 'description',
         content:
@@ -69,8 +69,7 @@ function RootComponent() {
       </main>
       <footer className="site-footer container">
         <p>
-          Lanterninha · feito por quem senta na fileira G. Avaliações escritas pela comunidade —
-          dados de demonstração.
+          Lanterninha · avaliações de salas de cinema escritas pela comunidade.
         </p>
       </footer>
     </>
@@ -80,7 +79,6 @@ function RootComponent() {
 function SiteHeader() {
   const { viewer } = useRouteContext({ from: '__root__' })
   const router = useRouter()
-  const signOutFn = useServerFn(signOut)
 
   return (
     <header className="site-header">
@@ -111,7 +109,7 @@ function SiteHeader() {
                 type="button"
                 className="link-button"
                 onClick={async () => {
-                  await signOutFn()
+                  await authClient.signOut()
                   await router.invalidate()
                 }}
               >
@@ -119,9 +117,14 @@ function SiteHeader() {
               </button>
             </>
           ) : (
-            <Link to="/sign-in" className="button button-small">
-              Entrar
-            </Link>
+            <>
+              <Link to="/sign-in" search={{ mode: 'login' }} activeOptions={{ includeSearch: false }}>
+                Entrar
+              </Link>
+              <Link to="/sign-in" search={{ mode: 'register' }} className="button button-small">
+                Criar conta
+              </Link>
+            </>
           )}
         </nav>
       </div>

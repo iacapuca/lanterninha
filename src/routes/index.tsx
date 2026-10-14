@@ -24,7 +24,7 @@ function HomePage() {
   return (
     <>
       <section className="hero">
-        <p className="eyebrow">Avaliações colaborativas · Brasil</p>
+        <p className="eyebrow">Avaliações colaborativas de salas de cinema</p>
         <h1>
           O filme você já escolheu.
           <br />
@@ -46,10 +46,10 @@ function HomePage() {
         <Ticket
           className="totals-ticket"
           stub={
-            <div className="totals-stub">
-              <span className="ticket-kicker">Admite 1</span>
-              <strong>🔦 BR</strong>
-            </div>
+            <Link to="/rooms" className="totals-stub">
+              <span className="ticket-kicker">Sua vez</span>
+              <strong>Avaliar uma sala →</strong>
+            </Link>
           }
         >
           <p className="ticket-kicker">

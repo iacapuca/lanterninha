@@ -1,2 +1,4 @@
-SESSION_SECRET=dev-only-secret
+# Better Auth signing/encryption secret. Generate with: openssl rand -base64 32
+BETTER_AUTH_SECRET=dev-only-secret-change-me-dev-only-secret
+# Artificial latency (ms) for the streamed sections, so streaming is visible in dev.
 SLOW_QUERY_MS=700

@@ -24,7 +24,7 @@ export function RoomCard({ room, showCinema = true }: { room: RoomSummary; showC
         }
       >
         <p className="ticket-kicker">
-          <span>Admite 1 · {room.seats} lug.</span>
+          <span>{room.seats} lugares</span>
           <span>{ticketSerial(room.id)}</span>
         </p>
         <FormatBadge format={room.format} />

@@ -10,10 +10,10 @@ import * as store from '~/server/store.server'
 
 const byId = z.object({ id: z.string().min(1).max(80) })
 
-export const getHome = createServerFn({ method: 'GET' }).handler(() => ({
-  topRooms: store.getTopRooms(6),
-  totals: store.getTotals(),
-}))
+export const getHome = createServerFn({ method: 'GET' }).handler(async () => {
+  const [topRooms, totals] = await Promise.all([store.getTopRooms(6), store.getTotals()])
+  return { topRooms, totals }
+})
 
 /** Slow on purpose (scans the whole review log): streamed on the home page. */
 export const getRecentReviews = createServerFn({ method: 'GET' })
@@ -25,15 +25,15 @@ export const getRecentReviews = createServerFn({ method: 'GET' })
 
 export const searchRooms = createServerFn({ method: 'GET' })
   .validator(exploreSearchSchema)
-  .handler(({ data }) => ({
-    ...store.searchRooms(data),
-    cities: store.listCities(),
-  }))
+  .handler(async ({ data }) => {
+    const [result, cities] = await Promise.all([store.searchRooms(data), store.listCities()])
+    return { ...result, cities }
+  })
 
 export const getRoom = createServerFn({ method: 'GET' })
   .validator(byId)
-  .handler(({ data }) => {
-    const room = store.getRoom(data.id)
+  .handler(async ({ data }) => {
+    const room = await store.getRoom(data.id)
     if (!room) throw notFound()
     return room
   })
@@ -54,16 +54,16 @@ export const getRoomReviews = createServerFn({ method: 'GET' })
 
 export const getCinema = createServerFn({ method: 'GET' })
   .validator(byId)
-  .handler(({ data }) => {
-    const cinema = store.getCinema(data.id)
+  .handler(async ({ data }) => {
+    const cinema = await store.getCinema(data.id)
     if (!cinema) throw notFound()
     return cinema
   })
 
 export const getUserProfile = createServerFn({ method: 'GET' })
   .validator(z.object({ username: z.string().min(1).max(24) }))
-  .handler(({ data }) => {
-    const profile = store.getUserProfile(data.username)
+  .handler(async ({ data }) => {
+    const profile = await store.getUserProfile(data.username)
     if (!profile) throw notFound()
     return profile
   })

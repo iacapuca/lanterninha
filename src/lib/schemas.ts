@@ -33,13 +33,27 @@ export const roomSearchSchema = z.object({
 })
 export const ROOM_SEARCH_DEFAULTS = { reviews: 'recent' } as const
 
+export const USERNAME_PATTERN = /^[a-z0-9_]+$/
+
 export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
   .min(3, 'Use pelo menos 3 caracteres')
   .max(24, 'Use no máximo 24 caracteres')
-  .regex(/^[a-z0-9_]+$/, 'Apenas letras minúsculas, números e _')
+  .regex(USERNAME_PATTERN, 'Apenas letras minúsculas, números e _')
+
+export const signUpSchema = z.object({
+  username: usernameSchema,
+  email: z.email('E-mail inválido').trim().toLowerCase(),
+  password: z.string().min(8, 'A senha precisa de pelo menos 8 caracteres').max(128),
+})
+
+export const signInSchema = z.object({
+  /** Username or email. */
+  login: z.string().trim().toLowerCase().min(3, 'Informe seu usuário ou e-mail'),
+  password: z.string().min(1, 'Informe sua senha'),
+})
 
 const score = z.coerce.number().int().min(1, 'Dê uma nota de 1 a 5').max(5)
 

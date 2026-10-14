@@ -5,17 +5,41 @@ instead of the film. Rate picture, sound, seats and cleanliness in 🔦, and fin
 the row the community likes best.
 
 Built with **TanStack Start** (React 19, file-based TanStack Router, typed
-server functions, streaming SSR), deployed to **Cloudflare Workers**.
+server functions, streaming SSR), **Better Auth**, **Drizzle ORM** and **D1**,
+deployed to **Cloudflare Workers**.
 
 The code is in English; the UI copy is in pt-BR.
 
 ```sh
 pnpm install
-cp .dev.vars.example .dev.vars
-pnpm dev          # http://localhost:3000 (SSR runs inside workerd)
+cp .dev.vars.example .dev.vars   # BETTER_AUTH_SECRET, SLOW_QUERY_MS
+pnpm db:migrate:local && pnpm db:seed:local
+pnpm dev          # http://localhost:3000 (SSR + local D1 run inside workerd)
 pnpm typecheck
 pnpm run deploy   # vite build && wrangler deploy
 ```
+
+### Database
+
+```sh
+pnpm db:generate          # drizzle-kit generate + copy into migrations/
+pnpm db:migrate:remote    # wrangler d1 migrations apply --remote
+pnpm db:seed:generate     # rebuild db/seed.sql from db/seed-data.ts
+pnpm db:seed:remote       # idempotent (INSERT OR IGNORE)
+```
+
+drizzle-kit 1.x writes one folder per migration, but Wrangler applies flat
+`.sql` files, so `db/sync-migrations.ts` copies `drizzle/*/migration.sql` into
+`migrations/`. Wrangler tracks which ones have been applied.
+
+### Auth
+
+Better Auth with email + password and the `username` plugin: the simplest
+setup that needs no email provider or OAuth app. You register with a username,
+email and password, and sign in with either the username or the email. The
+browser talks to `/api/auth/*` through `authClient`. On the server,
+`auth.api.getSession()` backs `getViewer` (root `beforeLoad`) and the
+`requireSession` middleware that protects writes.
 
 ## Architecture
 
@@ -24,9 +48,11 @@ src/
   routes/                file-based routes (routeTree.gen.ts is generated)
   functions/*.functions.ts  createServerFn RPCs — the only client→server boundary
   functions/auth.middleware.ts  session check enforced on every private write
-  server/*.server.ts     server-only code (store, seed, session); import-protected
+  server/*.server.ts     server-only code (auth, D1 client, schema, queries); import-protected
   lib/                   client-safe domain types, zod schemas, pt-BR formatting
   components/            tickets, 🔦 ratings, cards
+db/                      seed data + scripts (not bundled)
+drizzle/, migrations/    generated SQL (drizzle-kit output / Wrangler input)
 ```
 
 **Server boundary.** Route loaders are isomorphic, so they only ever call server
@@ -56,18 +82,19 @@ sections afterwards.
 ### Deployment target
 
 `vite.config.ts` uses `@cloudflare/vite-plugin`, and `wrangler.jsonc` points
-`main` at `@tanstack/react-start/server-entry`. App code only uses Web APIs
-(Web Crypto, `fetch`) and reads env per request, so moving to Node, Vercel or
-Netlify means changing the Vite plugin (`nitro()` from `nitro/vite` or the
-Netlify plugin), not the routes or server functions.
+`main` at `@tanstack/react-start/server-entry`. Only two modules import
+`cloudflare:workers`: `server/db/client.server.ts` (the D1 binding) and
+`server/auth.server.ts` (the secret). Moving to Node, Vercel or Netlify means
+swapping the Vite plugin and those two modules (for example, D1 for libSQL or
+Postgres through Drizzle), not the routes, loaders or server functions.
 
-Secrets: `wrangler secret put SESSION_SECRET`.
+Secrets: `wrangler secret put BETTER_AUTH_SECRET`. The D1 binding is `DB`, and `pnpm cf-typegen` regenerates `worker-configuration.d.ts`.
 
-## Known limitations (demo)
+## Known limitations
 
-- **Storage is in memory** (`src/server/store.server.ts`). On Workers each
-  isolate has its own copy, so new reviews are not shared between isolates and
-  are lost on restart. Next step: move the store functions onto D1; their
-  signatures already form the seam.
-- Sign-in is nickname-only (signed cookie, no password).
-- Venues are real; reviews and usernames are generated demo data.
+- No email verification or password reset yet (both need an email provider).
+- Venues are real; reviews and the 15 seed users are generated demo data.
+  Seed users have no credentials, so nobody can sign in as them.
+- Room data is curated by hand. ANCINE's open data (monthly *complexos e
+  salas* dataset: seats, accessibility, exhibitor) is the natural source for
+  an importer.

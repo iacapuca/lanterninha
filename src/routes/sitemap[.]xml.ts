@@ -5,9 +5,9 @@ import { getSitemapIds } from '~/server/store.server'
 export const Route = createFileRoute('/sitemap.xml')({
   server: {
     handlers: {
-      GET: ({ request }) => {
+      GET: async ({ request }) => {
         const origin = new URL(request.url).origin
-        const { rooms, cinemas } = getSitemapIds()
+        const { rooms, cinemas } = await getSitemapIds()
         const paths = [
           '/',
           '/rooms',

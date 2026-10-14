@@ -86,7 +86,7 @@ function RoomPage() {
         }
       >
         <p className="ticket-kicker">
-          <span>Lanterninha · admite uma pessoa</span>
+          <span>Ingresso · {room.cinema.chain}</span>
           <span>{ticketSerial(room.id)}</span>
         </p>
         <p className="room-hero-cinema">

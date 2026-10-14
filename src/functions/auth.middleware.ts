@@ -1,5 +1,6 @@
 import { createMiddleware } from '@tanstack/react-start'
-import { readSession } from '~/server/session.server'
+import { getRequestHeaders } from '@tanstack/react-start/server'
+import { auth } from '~/server/auth.server'
 
 /**
  * Server-function middleware: the security boundary for writes.
@@ -7,7 +8,12 @@ import { readSession } from '~/server/session.server'
  * endpoints, so every private one must carry this.
  */
 export const requireSession = createMiddleware({ type: 'function' }).server(async ({ next }) => {
-  const session = await readSession()
+  const session = await auth.api.getSession({ headers: getRequestHeaders() })
   if (!session) throw new Error('Você precisa entrar para fazer isso.')
-  return next({ context: { username: session.username } })
+  return next({
+    context: {
+      userId: session.user.id,
+      username: session.user.username ?? session.user.name,
+    },
+  })
 })

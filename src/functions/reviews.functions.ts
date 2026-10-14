@@ -11,8 +11,15 @@ const ERRORS = {
 export const createReview = createServerFn({ method: 'POST' })
   .middleware([requireSession])
   .validator(newReviewSchema)
-  .handler(({ data, context }) => {
-    const result = store.createReview(context.username, data)
+  .handler(async ({ data, context }) => {
+    let result: store.CreateReviewResult
+    try {
+      result = await store.createReview(context.userId, data)
+    } catch (error) {
+      // Never send database errors (SQL, parameters) to the client.
+      console.error('createReview failed', error)
+      throw new Error('Não foi possível publicar agora. Tente de novo em instantes.')
+    }
     if (!result.ok) throw new Error(ERRORS[result.reason])
-    return { id: result.review.id, roomId: result.review.roomId }
+    return { id: result.id, roomId: result.roomId }
   })
