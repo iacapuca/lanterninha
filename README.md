@@ -79,6 +79,15 @@ browser talks to `/api/auth/*` through `authClient`. On the server,
 `auth.api.getSession()` backs `getViewer` (root `beforeLoad`) and the
 `requireSession` middleware that protects writes.
 
+### UI
+
+Tailwind CSS v4 with [shadcn/ui](https://ui.shadcn.com) (Radix base) for
+interactive primitives: Button, Select, Popover, Command (city combobox) and
+Sonner toasts. The theme tokens in `src/styles.css` map shadcn onto Lanterninha's
+palette, with popovers printed on ticket paper. The bespoke ticket styles live in
+`@layer components`, so Tailwind utilities can still override them. Add more
+components with `pnpm dlx shadcn@latest add <name>`.
+
 ## Architecture
 
 ```

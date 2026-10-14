@@ -3,6 +3,7 @@ import { Link, createFileRoute, redirect, stripSearchParams, useRouter } from '@
 import { z } from 'zod'
 import { authClient } from '~/lib/auth-client'
 import { signInSchema, signUpSchema } from '~/lib/schemas'
+import { Button } from '~/components/ui/button'
 
 const signInSearchSchema = z.object({
   mode: z.enum(['login', 'register']).default('login').catch('login'),
@@ -140,9 +141,9 @@ function SignInPage() {
             {error}
           </p>
         )}
-        <button type="submit" className="button" disabled={pending}>
+        <Button type="submit" disabled={pending}>
           {pending ? 'Um instante…' : isRegister ? 'Criar conta' : 'Entrar'}
-        </button>
+        </Button>
       </form>
     </section>
   )

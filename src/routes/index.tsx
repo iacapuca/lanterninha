@@ -4,6 +4,7 @@ import { FORMATS, FORMAT_IDS } from '~/lib/domain'
 import { ReviewItem, ReviewListSkeleton } from '~/components/review-item'
 import { RoomCard } from '~/components/room-card'
 import { Ticket, ticketSerial } from '~/components/ticket'
+import { Button } from '~/components/ui/button'
 
 // SSR: full (default). Critical data is awaited and rendered into the HTML;
 // the recent-reviews feed is a deferred promise that streams in afterwards.
@@ -39,9 +40,9 @@ function HomePage() {
             Buscar sala ou cinema
           </label>
           <input id="hero-q" name="q" placeholder="Odeon, IMAX, Belas Artes…" autoComplete="off" />
-          <button type="submit" className="button">
+          <Button type="submit" size="lg">
             Buscar
-          </button>
+          </Button>
         </form>
         <Ticket
           className="totals-ticket"

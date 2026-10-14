@@ -1,9 +1,15 @@
+import { useState } from 'react'
 import { Link, createFileRoute, stripSearchParams, useNavigate } from '@tanstack/react-router'
+import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
 import { searchRooms } from '~/functions/rooms.functions'
 import { FORMATS, FORMAT_IDS, STATES } from '~/lib/domain'
 import { pluralize } from '~/lib/format'
 import { EXPLORE_DEFAULTS, exploreSearchSchema, type ExploreSearch } from '~/lib/schemas'
 import { RoomCard } from '~/components/room-card'
+import { Button } from '~/components/ui/button'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '~/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 // Reuse the route's own schema to turn raw <select> values into typed params.
 const fields = exploreSearchSchema.shape
@@ -68,77 +74,72 @@ function ExplorePage() {
           <input name="q" defaultValue={search.q ?? ''} placeholder="Cinema, bairro, rede…" key={search.q} />
         </label>
 
-        <label className="field">
-          <span>Cidade</span>
-          <select
-            name="city"
-            value={search.city ?? ''}
-            onChange={(e) => setFilter({ city: e.target.value || undefined })}
-          >
-            <option value="">Todas</option>
-            {search.city && !cities.some((c) => c.city === search.city) && (
-              <option value={search.city}>{search.city}</option>
-            )}
-            {cities.map((c) => (
-              <option key={c.city} value={c.city}>
-                {c.city} ({c.rooms})
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field">
+        <div className="field">
           <span>UF</span>
-          <select
-            name="state"
-            value={search.state ?? ''}
-            onChange={(e) => setFilter({ state: fields.state.parse(e.target.value), city: undefined })}
+          <Select
+            value={search.state ?? ALL}
+            onValueChange={(v) => setFilter({ state: fields.state.parse(v === ALL ? '' : v), city: undefined })}
           >
-            <option value="">Todas</option>
-            {STATES.map((uf) => (
-              <option key={uf} value={uf}>
-                {uf}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="h-10! w-full" aria-label="UF">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todas</SelectItem>
+              {STATES.map((uf) => (
+                <SelectItem key={uf} value={uf}>
+                  {uf}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <label className="field">
+        <div className="field">
+          <span>Cidade</span>
+          <CityCombobox
+            cities={cities}
+            value={search.city}
+            onChange={(city) => setFilter({ city })}
+          />
+        </div>
+
+        <div className="field">
           <span>Formato</span>
-          <select
-            name="format"
-            value={search.format ?? ''}
-            onChange={(e) =>
-              setFilter({ format: fields.format.parse(e.target.value) })
-            }
+          <Select
+            value={search.format ?? ALL}
+            onValueChange={(v) => setFilter({ format: fields.format.parse(v === ALL ? '' : v) })}
           >
-            <option value="">Todos</option>
-            {FORMAT_IDS.map((f) => (
-              <option key={f} value={f}>
-                {FORMATS[f]}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="h-10! w-full" aria-label="Formato">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todos</SelectItem>
+              {FORMAT_IDS.map((f) => (
+                <SelectItem key={f} value={f}>
+                  {FORMATS[f]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <label className="field">
+        <div className="field">
           <span>Ordenar</span>
-          <select
-            name="sort"
-            value={search.sort}
-            onChange={(e) => setFilter({ sort: fields.sort.parse(e.target.value) })}
-          >
-            {Object.entries(SORT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={search.sort} onValueChange={(v) => setFilter({ sort: fields.sort.parse(v) })}>
+            <SelectTrigger className="h-10! w-full" aria-label="Ordenar">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(SORT_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <button type="submit" className="button">
-          Filtrar
-        </button>
+        <Button type="submit">Filtrar</Button>
       </form>
 
       {hasFilters && (
@@ -164,27 +165,82 @@ function ExplorePage() {
 
       {pageCount > 1 && (
         <nav className="pagination" aria-label="Paginação">
-          <Link
-            from={Route.fullPath}
-            search={(prev) => ({ ...prev, page: page - 1 })}
-            disabled={page <= 1}
-            className="button button-ghost"
-          >
-            ← Anterior
-          </Link>
+          <Button asChild variant="outline" aria-disabled={page <= 1}>
+            <Link from={Route.fullPath} search={(prev) => ({ ...prev, page: page - 1 })} disabled={page <= 1}>
+              ← Anterior
+            </Link>
+          </Button>
           <span className="muted">
             Página {page} de {pageCount}
           </span>
-          <Link
-            from={Route.fullPath}
-            search={(prev) => ({ ...prev, page: page + 1 })}
-            disabled={page >= pageCount}
-            className="button button-ghost"
-          >
-            Próxima →
-          </Link>
+          <Button asChild variant="outline" aria-disabled={page >= pageCount}>
+            <Link from={Route.fullPath} search={(prev) => ({ ...prev, page: page + 1 })} disabled={page >= pageCount}>
+              Próxima →
+            </Link>
+          </Button>
         </nav>
       )}
     </>
+  )
+}
+
+/** Radix Select can't use '' as an item value, so "no filter" gets a sentinel. */
+const ALL = '__all__'
+
+/** Searchable city picker: 500+ cities is too many for a plain select. */
+function CityCombobox({
+  cities,
+  value,
+  onChange,
+}: {
+  cities: Array<{ city: string; state: string; rooms: number }>
+  value: string | undefined
+  onChange: (city: string | undefined) => void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="h-10 w-full justify-between rounded-lg font-normal">
+          <span className="truncate">{value ?? 'Todas'}</span>
+          <ChevronsUpDownIcon className="opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar cidade…" />
+          <CommandList>
+            <CommandEmpty>Nenhuma cidade encontrada.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__todas__"
+                onSelect={() => {
+                  onChange(undefined)
+                  setOpen(false)
+                }}
+              >
+                Todas as cidades
+              </CommandItem>
+              {cities.map((c) => (
+                <CommandItem
+                  key={`${c.city}-${c.state}`}
+                  value={`${c.city} ${c.state}`}
+                  onSelect={() => {
+                    onChange(c.city)
+                    setOpen(false)
+                  }}
+                >
+                  <CheckIcon className={c.city === value ? 'opacity-100' : 'opacity-0'} />
+                  <span className="flex-1">{c.city}</span>
+                  <span className="text-xs opacity-60">
+                    {c.state} · {c.rooms}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

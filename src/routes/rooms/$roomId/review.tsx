@@ -6,6 +6,7 @@ import { getRoom } from '~/functions/rooms.functions'
 import { CRITERIA, CRITERION_IDS, TAGS, type Criterion, type Tag } from '~/lib/domain'
 import { newReviewSchema } from '~/lib/schemas'
 import { LanternPicker } from '~/components/lanterns'
+import { Button } from '~/components/ui/button'
 
 // SSR: 'data-only'. `beforeLoad` and the loader run on the server (auth
 // redirect and room lookup happen before any HTML is sent), but the form
@@ -201,9 +202,9 @@ function ReviewPage() {
       )}
 
       <div className="form-actions">
-        <button type="submit" className="button" disabled={submitting}>
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Publicando…' : 'Publicar avaliação'}
-        </button>
+        </Button>
         <span className="muted">Rascunho salvo neste navegador.</span>
       </div>
     </form>

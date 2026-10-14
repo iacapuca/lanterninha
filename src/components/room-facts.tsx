@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation, useRouteContext, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
+import { toast } from 'sonner'
 import { voteRoomFact } from '~/functions/reviews.functions'
 import { BADGES, ROOM_FACTS, ROOM_FACT_FIELDS, type FactSource, type RoomFactField } from '~/lib/domain'
 import { pluralize } from '~/lib/format'
 import { roomFactVoteSchema } from '~/lib/schemas'
+import { Button } from '~/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Props = {
   roomId: string
@@ -19,147 +23,112 @@ const label = (field: RoomFactField, value: string) =>
 
 /** The room's spec sheet. Unknown details invite the community to fill them in. */
 export function RoomFacts({ roomId, values, sources, votes, mine }: Props) {
-  const [editing, setEditing] = useState<RoomFactField | null>(null)
-  const [unlocked, setUnlocked] = useState<string[]>([])
-
   return (
-    <div className="room-facts">
-      <dl className="ticket-fields">
-        {ROOM_FACT_FIELDS.map((field) => {
-          const value = values[field]
-          const total = votes[field].reduce((n, v) => n + v.votes, 0)
-          return (
-            <div key={field}>
-              <dt>{ROOM_FACTS[field].label}</dt>
-              <dd>
+    <dl className="ticket-fields room-facts">
+      {ROOM_FACT_FIELDS.map((field) => {
+        const value = values[field]
+        const total = votes[field].reduce((n, v) => n + v.votes, 0)
+        return (
+          <div key={field}>
+            <dt>{ROOM_FACTS[field].label}</dt>
+            <dd>
+              {value && <>{label(field, value)} </>}
+              <FactPopover roomId={roomId} field={field} current={mine[field] ?? null}>
                 {value ? (
-                  <>
-                    {label(field, value)}{' '}
-                    <button type="button" className="fact-source" onClick={() => setEditing(field)}>
-                      {sources[field] === 'community'
-                        ? `segundo ${pluralize(total, 'pessoa', 'pessoas')}`
-                        : 'pelo nome na ANCINE'}{' '}
-                      · corrigir
-                    </button>
-                  </>
+                  <button type="button" className="fact-source">
+                    {sources[field] === 'community'
+                      ? `segundo ${pluralize(total, 'pessoa', 'pessoas')}`
+                      : 'pelo nome na ANCINE'}{' '}
+                    · corrigir
+                  </button>
                 ) : (
-                  <button type="button" className="fact-cta" onClick={() => setEditing(field)}>
+                  <button type="button" className="fact-cta">
                     + {ROOM_FACTS[field].cta}
                   </button>
                 )}
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
-
-      {editing && (
-        <FactForm
-          roomId={roomId}
-          field={editing}
-          current={mine[editing] ?? null}
-          onDone={(badges) => {
-            setEditing(null)
-            setUnlocked(badges)
-          }}
-          onCancel={() => setEditing(null)}
-        />
-      )}
-
-      {unlocked.length > 0 && (
-        <div className="badge-toast" role="status">
-          {unlocked.map((id) => {
-            const badge = BADGES.find((b) => b.id === id)!
-            return (
-              <p key={id}>
-                <span aria-hidden="true">{badge.emoji}</span> Você ganhou <strong>{badge.name}</strong>!
-              </p>
-            )
-          })}
-          <button type="button" className="link-button" onClick={() => setUnlocked([])}>
-            Fechar
-          </button>
-        </div>
-      )}
-    </div>
+              </FactPopover>
+            </dd>
+          </div>
+        )
+      })}
+    </dl>
   )
 }
 
-function FactForm({
+function FactPopover({
   roomId,
   field,
   current,
-  onDone,
-  onCancel,
+  children,
 }: {
   roomId: string
   field: RoomFactField
   current: string | null
-  onDone: (newBadges: string[]) => void
-  onCancel: () => void
+  children: React.ReactNode
 }) {
   const { viewer } = useRouteContext({ from: '__root__' })
   const location = useLocation()
   const router = useRouter()
   const vote = useServerFn(voteRoomFact)
+  const [open, setOpen] = useState(false)
   const [value, setValue] = useState(current ?? '')
-  const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  if (!viewer) {
-    return (
-      <div className="fact-form">
-        <p>Entre para contribuir com a ficha técnica e ganhar badges.</p>
-        <Link to="/sign-in" search={{ mode: 'register', redirect: location.href }} className="button button-small">
-          Criar conta
-        </Link>{' '}
-        <button type="button" className="link-button" onClick={onCancel}>
-          Agora não
-        </button>
-      </div>
-    )
+  async function save() {
+    // Same schema the server enforces; it also narrows `value` to the field's options.
+    const parsed = roomFactVoteSchema.safeParse({ roomId, field, value })
+    if (!parsed.success) return toast.error('Escolha uma opção')
+    setPending(true)
+    try {
+      const { newBadges } = await vote({ data: parsed.data })
+      await router.invalidate()
+      setOpen(false)
+      toast.success('Obrigado! A ficha da sala foi atualizada.')
+      for (const id of newBadges) {
+        const badge = BADGES.find((b) => b.id === id)
+        if (badge) toast(`${badge.emoji} Você ganhou ${badge.name}!`, { description: badge.hint, duration: 8000 })
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível salvar.')
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
-    <form
-      className="fact-form"
-      onSubmit={async (e) => {
-        e.preventDefault()
-        // Same schema the server enforces; it also narrows `value` to the field's options.
-        const parsed = roomFactVoteSchema.safeParse({ roomId, field, value })
-        if (!parsed.success) return setError('Escolha uma opção')
-        setPending(true)
-        try {
-          const { newBadges } = await vote({ data: parsed.data })
-          await router.invalidate()
-          onDone(newBadges)
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Não foi possível salvar.')
-        } finally {
-          setPending(false)
-        }
-      }}
-    >
-      <label className="field">
-        <span>{ROOM_FACTS[field].label}</span>
-        <select value={value} onChange={(e) => setValue(e.target.value)} autoFocus>
-          <option value="">Escolha…</option>
-          {Object.entries(ROOM_FACTS[field].options).map(([id, text]) => (
-            <option key={id} value={id}>
-              {text}
-            </option>
-          ))}
-        </select>
-      </label>
-      {error && <p className="form-errors">{error}</p>}
-      <div className="form-actions">
-        <button type="submit" className="button button-small" disabled={pending}>
-          {pending ? 'Salvando…' : current ? 'Atualizar' : 'Salvar'}
-        </button>
-        <button type="button" className="link-button" onClick={onCancel}>
-          Cancelar
-        </button>
-      </div>
-    </form>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent className="w-72" align="start">
+        {viewer ? (
+          <div className="flex flex-col gap-3">
+            <p className="font-heading text-base font-bold">{ROOM_FACTS[field].label}</p>
+            <Select value={value} onValueChange={setValue}>
+              <SelectTrigger className="w-full border-ink/20 bg-white/40 text-ink">
+                <SelectValue placeholder="Escolha…" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(ROOM_FACTS[field].options).map(([id, text]) => (
+                  <SelectItem key={id} value={id}>
+                    {text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="ink" size="sm" onClick={save} disabled={pending || !value}>
+              {pending ? 'Salvando…' : current ? 'Atualizar' : 'Salvar'}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 text-sm">
+            <p>Entre para contribuir com a ficha técnica e ganhar badges.</p>
+            <Button asChild variant="ink" size="sm">
+              <Link to="/sign-in" search={{ mode: 'register', redirect: location.href }}>
+                Criar conta
+              </Link>
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }

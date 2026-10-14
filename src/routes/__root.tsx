@@ -12,6 +12,8 @@ import {
 import { getViewer } from '~/functions/session.functions'
 import { authClient } from '~/lib/auth-client'
 import appCss from '~/styles.css?url'
+import { Button } from '~/components/ui/button'
+import { Toaster } from '~/components/ui/sonner'
 
 export const Route = createRootRoute({
   // Root SSR is full-document: <html> is always rendered on the server.
@@ -54,6 +56,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster position="bottom-center" richColors={false} />
         <Scripts />
       </body>
     </html>
@@ -124,9 +127,11 @@ function SiteHeader() {
               <Link to="/sign-in" search={{ mode: 'login' }} activeOptions={{ includeSearch: false }}>
                 Entrar
               </Link>
-              <Link to="/sign-in" search={{ mode: 'register' }} className="button button-small">
-                Criar conta
-              </Link>
+              <Button asChild size="sm">
+                <Link to="/sign-in" search={{ mode: 'register' }}>
+                  Criar conta
+                </Link>
+              </Button>
             </>
           )}
         </nav>

@@ -1,4 +1,5 @@
 import { Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router'
+import { Button } from '~/components/ui/button'
 
 export function DefaultNotFound() {
   return (
@@ -6,9 +7,9 @@ export function DefaultNotFound() {
       <p className="eyebrow">404</p>
       <h1>Essa sala está com as luzes apagadas</h1>
       <p className="muted">Não encontramos o que você procurava.</p>
-      <Link to="/rooms" className="button">
-        Explorar salas
-      </Link>
+      <Button asChild className="mt-3">
+        <Link to="/rooms">Explorar salas</Link>
+      </Button>
     </section>
   )
 }
@@ -20,16 +21,16 @@ export function DefaultError({ error, reset }: ErrorComponentProps) {
       <p className="eyebrow">Falha na projeção</p>
       <h1>Algo deu errado</h1>
       <p className="muted">{error instanceof Error ? error.message : 'Erro desconhecido'}</p>
-      <button
+      <Button
         type="button"
-        className="button"
+        className="mt-3"
         onClick={() => {
           reset()
           void router.invalidate()
         }}
       >
         Tentar de novo
-      </button>
+      </Button>
     </section>
   )
 }

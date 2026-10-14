@@ -7,6 +7,7 @@ import { Lanterns } from '~/components/lanterns'
 import { ReviewItem, ReviewListSkeleton } from '~/components/review-item'
 import { Ticket, ticketSerial } from '~/components/ticket'
 import { RoomFacts } from '~/components/room-facts'
+import { Button } from '~/components/ui/button'
 
 const REVIEW_SORT_LABELS = { recent: 'Recentes', best: 'Melhores', worst: 'Piores' } as const
 
@@ -79,9 +80,11 @@ function RoomPage() {
             <strong className="ticket-score">{formatRating(room.average)}</strong>
             <Lanterns rating={room.average} size={22} />
             <span>{pluralize(room.reviewCount, 'avaliação', 'avaliações')}</span>
-            <Link to="/rooms/$roomId/review" params={{ roomId: room.id }} className="button">
-              Avaliar esta sala
-            </Link>
+            <Button asChild className="mt-1.5">
+              <Link to="/rooms/$roomId/review" params={{ roomId: room.id }}>
+                Avaliar esta sala
+              </Link>
+            </Button>
           </div>
         }
       >

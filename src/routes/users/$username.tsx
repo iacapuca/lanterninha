@@ -4,6 +4,7 @@ import { formatRating, pluralize } from '~/lib/format'
 import { BADGES } from '~/lib/domain'
 import { Lanterns } from '~/components/lanterns'
 import { ReviewItem } from '~/components/review-item'
+import { Button } from '~/components/ui/button'
 
 // SSR: full. A user's public diary of screenings.
 export const Route = createFileRoute('/users/$username')({
@@ -71,9 +72,9 @@ function ProfilePage() {
         <section className="empty-state">
           <h2>Nenhuma sessão no diário ainda</h2>
           <p className="muted">As avaliações de @{profile.username} vão aparecer aqui.</p>
-          <Link to="/rooms" className="button">
-            Encontrar uma sala
-          </Link>
+          <Button asChild>
+            <Link to="/rooms">Encontrar uma sala</Link>
+          </Button>
         </section>
       ) : (
         <div className="stack">

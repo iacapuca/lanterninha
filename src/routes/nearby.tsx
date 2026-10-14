@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { getCinemaLocations } from '~/functions/rooms.functions'
 import { formatRating, pluralize } from '~/lib/format'
 import { Lanterns } from '~/components/lanterns'
+import { Button } from '~/components/ui/button'
 
 // SSR: false. This page is entirely about the visitor's position
 // (Geolocation API) and has no SEO value, so neither the loader nor the
@@ -73,9 +74,9 @@ function NearbyPage() {
           Sua localização fica só no seu navegador — nada é enviado ao servidor. Distâncias com ~ usam o
           centro da cidade.
         </p>
-        <button type="button" className="button" onClick={locate} disabled={status === 'locating'}>
+        <Button type="button" onClick={locate} disabled={status === 'locating'}>
           {status === 'locating' ? 'Procurando…' : position ? 'Atualizar localização' : 'Usar minha localização'}
-        </button>
+        </Button>
         {status === 'denied' && (
           <p className="form-errors">Não conseguimos sua localização. Mostrando por nota.</p>
         )}
