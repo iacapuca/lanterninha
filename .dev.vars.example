@@ -1,0 +1,2 @@
+SESSION_SECRET=dev-only-secret
+SLOW_QUERY_MS=700
