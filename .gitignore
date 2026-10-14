@@ -7,3 +7,6 @@ dist
 .wrangler
 .vercel
 .dev.vars
+
+# Raw ANCINE dataset (re-download with `pnpm ancine:download`)
+db/ancine/*.csv

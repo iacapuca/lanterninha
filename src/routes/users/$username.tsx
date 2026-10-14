@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { getUserProfile } from '~/functions/rooms.functions'
 import { formatRating, pluralize } from '~/lib/format'
 import { Lanterns } from '~/components/lanterns'
@@ -14,8 +14,8 @@ export const Route = createFileRoute('/users/$username')({
     const { username } = Route.useParams()
     return (
       <section className="empty-state">
-        <h1>@{username} ainda não avaliou nenhuma sala</h1>
-        <p className="muted">Quando avaliar, o diário de sessões aparece aqui.</p>
+        <h1>Não encontramos @{username}</h1>
+        <p className="muted">Confira se o nome de usuário está certo.</p>
       </section>
     )
   },
@@ -33,18 +33,30 @@ function ProfilePage() {
         <div>
           <p className="eyebrow">Diário de sessões</p>
           <h1>@{profile.username}</h1>
-          <p className="muted">
-            {pluralize(profile.reviews.length, 'sala avaliada', 'salas avaliadas')} em{' '}
-            {profile.cities.join(', ')} · média {formatRating(profile.average)}{' '}
-            <Lanterns rating={profile.average} size={14} />
-          </p>
+          {profile.reviews.length > 0 && (
+            <p className="muted">
+              {pluralize(profile.reviews.length, 'sala avaliada', 'salas avaliadas')} em{' '}
+              {profile.cities.join(', ')} · média {formatRating(profile.average)}{' '}
+              <Lanterns rating={profile.average} size={14} />
+            </p>
+          )}
         </div>
       </header>
-      <div className="stack">
-        {profile.reviews.map((review) => (
-          <ReviewItem key={review.id} review={review} />
-        ))}
-      </div>
+      {profile.reviews.length === 0 ? (
+        <section className="empty-state">
+          <h2>Nenhuma sessão no diário ainda</h2>
+          <p className="muted">As avaliações de @{profile.username} vão aparecer aqui.</p>
+          <Link to="/rooms" className="button">
+            Encontrar uma sala
+          </Link>
+        </section>
+      ) : (
+        <div className="stack">
+          {profile.reviews.map((review) => (
+            <ReviewItem key={review.id} review={review} />
+          ))}
+        </div>
+      )}
     </>
   )
 }

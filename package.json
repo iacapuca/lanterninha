@@ -15,7 +15,8 @@
     "db:migrate:local": "wrangler d1 migrations apply lanterninha --local",
     "db:migrate:remote": "wrangler d1 migrations apply lanterninha --remote",
     "db:seed:local": "wrangler d1 execute lanterninha --local --file db/seed.sql",
-    "db:seed:remote": "wrangler d1 execute lanterninha --remote --file db/seed.sql"
+    "db:seed:remote": "wrangler d1 execute lanterninha --remote --file db/seed.sql",
+    "ancine:download": "node db/ancine/download.ts"
   },
   "devEngines": {
     "packageManager": {

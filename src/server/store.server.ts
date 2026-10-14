@@ -5,7 +5,7 @@ import type { Criterion, Review, ReviewWithRoom, RoomStats, RoomSummary, Tag } f
 import { CRITERION_IDS, RATINGS } from '~/lib/domain'
 import type { ExploreSearch, NewReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, review, room, user } from './db/schema.server'
+import { cinema, review, room } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -128,91 +128,80 @@ export async function getTopRooms(limit: number) {
 }
 
 export async function getCinema(id: string) {
-  const [found] = await db.select().from(cinema).where(eq(cinema.id, id)).limit(1)
+  const found = await db.query.cinema.findFirst({ where: { id } })
   if (!found) return null
   const rooms = await selectSummaries(eq(room.cinemaId, id)).orderBy(asc(room.name))
   return { cinema: found, rooms: rooms.map(toSummary) }
 }
 
-// ---------- Reviews ----------
+// ---------- Reviews (relational queries) ----------
 
-const reviewFields = {
-  id: review.id,
-  roomId: review.roomId,
-  username: sql<string>`coalesce(${user.username}, ${user.name})`,
-  rating: review.rating,
-  picture: review.picture,
-  sound: review.sound,
-  comfort: review.comfort,
-  cleanliness: review.cleanliness,
-  row: review.row,
-  film: review.film,
-  body: review.body,
-  tags: review.tags,
-  createdAt: review.createdAt,
-}
+/** Author and room/cinema shapes loaded with `with`, shared by every review read. */
+const withAuthor = { user: { columns: { username: true, name: true } } } as const
+const withRoom = {
+  room: {
+    columns: { id: true, name: true, format: true },
+    with: { cinema: { columns: { id: true, name: true, city: true, state: true } } },
+  },
+} as const
+const withRoomAndCinema = { ...withAuthor, ...withRoom } as const
 
-type ReviewRow = Awaited<ReturnType<typeof selectReviews>>[number]
+type ReviewRecord = typeof review.$inferSelect & { user: { username: string | null; name: string } }
 
-function toReview({ picture, sound, comfort, cleanliness, createdAt, ...rest }: ReviewRow): Review {
+function toReview({
+  picture,
+  sound,
+  comfort,
+  cleanliness,
+  createdAt,
+  user: author,
+  userId: _userId,
+  day: _day,
+  ...rest
+}: ReviewRecord): Review {
   return {
     ...rest,
+    username: author.username ?? author.name,
     criteria: { picture, sound, comfort, cleanliness },
     createdAt: createdAt.toISOString(),
   }
 }
 
-function selectReviews(where?: SQL) {
-  return db
-    .select(reviewFields)
-    .from(review)
-    .innerJoin(user, eq(review.userId, user.id))
-    .where(where)
-    .$dynamic()
-}
-
-function selectReviewsWithRoom(where?: SQL) {
-  return db
-    .select({
-      ...reviewFields,
-      room: { id: room.id, name: room.name, format: room.format },
-      cinema: { id: cinema.id, name: cinema.name, city: cinema.city, state: cinema.state },
-    })
-    .from(review)
-    .innerJoin(user, eq(review.userId, user.id))
-    .innerJoin(room, eq(review.roomId, room.id))
-    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
-    .where(where)
-    .$dynamic()
-}
-
-const toReviewWithRoom = ({
-  room: r,
-  cinema: c,
+function toReviewWithRoom({
+  room: { cinema: c, ...r },
   ...rest
-}: Awaited<ReturnType<typeof selectReviewsWithRoom>>[number]): ReviewWithRoom => ({
-  ...toReview(rest),
-  room: r,
-  cinema: c,
-})
+}: ReviewRecord & {
+  room: ReviewWithRoom['room'] & { cinema: ReviewWithRoom['cinema'] }
+}): ReviewWithRoom {
+  return { ...toReview(rest), room: r, cinema: c }
+}
 
-export async function getRoomReviews(roomId: string, sort: 'recent' | 'best' | 'worst') {
-  const order = {
-    recent: [desc(review.createdAt)],
-    best: [desc(review.rating), desc(review.createdAt)],
-    worst: [asc(review.rating), desc(review.createdAt)],
-  }[sort]
-  const rows = await selectReviews(eq(review.roomId, roomId)).orderBy(...order)
+const REVIEW_ORDER = {
+  recent: { createdAt: 'desc' },
+  best: { rating: 'desc', createdAt: 'desc' },
+  worst: { rating: 'asc', createdAt: 'desc' },
+} as const
+
+export async function getRoomReviews(roomId: string, sort: keyof typeof REVIEW_ORDER) {
+  const rows = await db.query.review.findMany({
+    where: { roomId },
+    orderBy: REVIEW_ORDER[sort],
+    with: withAuthor,
+  })
   return rows.map(toReview)
 }
 
 export async function getRecentReviews(limit: number) {
-  const rows = await selectReviewsWithRoom().orderBy(desc(review.createdAt)).limit(limit)
+  const rows = await db.query.review.findMany({
+    orderBy: { createdAt: 'desc' },
+    limit,
+    with: withRoomAndCinema,
+  })
   return rows.map(toReviewWithRoom)
 }
 
 export async function getRoomStats(roomId: string): Promise<RoomStats> {
-  const list = (await selectReviews(eq(review.roomId, roomId))).map(toReview)
+  const list = (await db.query.review.findMany({ where: { roomId }, with: withAuthor })).map(toReview)
 
   const histogram: Record<string, number> = Object.fromEntries(RATINGS.map((n) => [String(n), 0]))
   for (const r of list) histogram[String(r.rating)] = (histogram[String(r.rating)] ?? 0) + 1
@@ -248,11 +237,18 @@ export async function getRoomStats(roomId: string): Promise<RoomStats> {
   }
 }
 
+/** Null only when the user doesn't exist; a user with no reviews gets an empty diary. */
 export async function getUserProfile(username: string) {
-  const reviews = (
-    await selectReviewsWithRoom(eq(user.username, username)).orderBy(desc(review.createdAt))
-  ).map(toReviewWithRoom)
-  if (reviews.length === 0) return null
+  const found = await db.query.user.findFirst({
+    where: { username },
+    columns: { username: true, name: true },
+    with: {
+      reviews: { orderBy: { createdAt: 'desc' }, with: withRoom },
+    },
+  })
+  if (!found) return null
+  const author = { username: found.username, name: found.name }
+  const reviews = found.reviews.map((r) => toReviewWithRoom({ ...r, user: author }))
   return {
     username,
     reviews,
