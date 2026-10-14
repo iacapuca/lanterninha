@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { getUserProfile } from '~/functions/rooms.functions'
 import { formatRating, pluralize } from '~/lib/format'
+import { BADGES } from '~/lib/domain'
 import { Lanterns } from '~/components/lanterns'
 import { ReviewItem } from '~/components/review-item'
 
@@ -42,6 +43,30 @@ function ProfilePage() {
           )}
         </div>
       </header>
+
+      <section className="section badges" aria-labelledby="badges-title">
+        <div className="section-head">
+          <h2 id="badges-title">Coleção</h2>
+          <span className="muted">
+            {profile.badges.length} de {BADGES.length}
+          </span>
+        </div>
+        <ul className="badge-grid">
+          {BADGES.map((badge) => {
+            const earned = profile.badges.includes(badge.id)
+            return (
+              <li key={badge.id} className={earned ? 'badge-stub earned' : 'badge-stub'}>
+                <span className="badge-stub-emoji" aria-hidden="true">
+                  {badge.emoji}
+                </span>
+                <strong>{badge.name}</strong>
+                <span className="badge-stub-hint">{earned ? 'Conquistado' : badge.hint}</span>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
       {profile.reviews.length === 0 ? (
         <section className="empty-state">
           <h2>Nenhuma sessão no diário ainda</h2>

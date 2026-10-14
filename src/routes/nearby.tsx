@@ -27,6 +27,8 @@ function distanceKm(a: Position, b: Position) {
   return 6371 * 2 * Math.asin(Math.sqrt(h))
 }
 
+const LIST_SIZE = 30
+
 // Bounding box of mainland Brazil for the dot plot.
 const BOUNDS = { west: -74, east: -34, north: 5.5, south: -34 }
 const project = (p: Position) => ({
@@ -41,9 +43,10 @@ function NearbyPage() {
 
   const sorted = useMemo(() => {
     const withDistance = cinemas.map((c) => ({ ...c, km: position ? distanceKm(position, c) : null }))
-    return position
+    const ranked = position
       ? withDistance.sort((a, b) => (a.km ?? 0) - (b.km ?? 0))
-      : withDistance.sort((a, b) => (b.average ?? 0) - (a.average ?? 0))
+      : withDistance.sort((a, b) => (b.average ?? 0) - (a.average ?? 0) || b.roomCount - a.roomCount)
+    return ranked.slice(0, LIST_SIZE)
   }, [cinemas, position])
 
   const me = position && project(position)
@@ -67,7 +70,8 @@ function NearbyPage() {
         <p className="eyebrow">Perto de mim</p>
         <h1>Qual a melhor sala aqui do lado?</h1>
         <p className="muted">
-          Sua localização fica só no seu navegador — nada é enviado ao servidor.
+          Sua localização fica só no seu navegador — nada é enviado ao servidor. Distâncias com ~ usam o
+          centro da cidade.
         </p>
         <button type="button" className="button" onClick={locate} disabled={status === 'locating'}>
           {status === 'locating' ? 'Procurando…' : position ? 'Atualizar localização' : 'Usar minha localização'}
@@ -92,7 +96,12 @@ function NearbyPage() {
               <div className="nearby-score">
                 <Lanterns rating={c.average} size={13} />
                 <span>{formatRating(c.average)}</span>
-                {c.km != null && <span className="muted">{Math.round(c.km).toLocaleString('pt-BR')} km</span>}
+                {c.km != null && (
+                  <span className="muted">
+                    {c.geoPrecision === 'city' && '~'}
+                    {Math.round(c.km).toLocaleString('pt-BR')} km
+                  </span>
+                )}
               </div>
             </li>
           ))}
@@ -103,7 +112,7 @@ function NearbyPage() {
             {cinemas.map((c) => {
               const { x, y } = project(c)
               return (
-                <circle key={c.id} cx={x} cy={y} r={3 + (c.average ?? 0)} className="dot">
+                <circle key={c.id} cx={x} cy={y} r={c.reviewCount > 0 ? 3 + (c.average ?? 0) : 2} className="dot">
                   <title>{c.name}</title>
                 </circle>
               )

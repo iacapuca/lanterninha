@@ -11,12 +11,13 @@
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate && node db/sync-migrations.ts",
-    "db:seed:generate": "node db/generate-seed.ts",
     "db:migrate:local": "wrangler d1 migrations apply lanterninha --local",
     "db:migrate:remote": "wrangler d1 migrations apply lanterninha --remote",
-    "db:seed:local": "wrangler d1 execute lanterninha --local --file db/seed.sql",
-    "db:seed:remote": "wrangler d1 execute lanterninha --remote --file db/seed.sql",
-    "ancine:download": "node db/ancine/download.ts"
+    "ancine:download": "node db/ancine/download.ts",
+    "ancine:geocode": "node db/geo/geocode.ts",
+    "ancine:build": "node db/ancine/import.ts && node db/demo/generate.ts",
+    "db:import:local": "wrangler d1 execute lanterninha --local --file db/ancine/import.sql && wrangler d1 execute lanterninha --local --file db/demo/seed.sql",
+    "db:import:remote": "wrangler d1 execute lanterninha --remote --file db/ancine/import.sql && wrangler d1 execute lanterninha --remote --file db/demo/seed.sql"
   },
   "devEngines": {
     "packageManager": {

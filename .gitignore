@@ -10,3 +10,4 @@ dist
 
 # Raw ANCINE dataset (re-download with `pnpm ancine:download`)
 db/ancine/*.csv
+db/ancine/import.sql

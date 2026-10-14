@@ -353,3 +353,48 @@ p.form-errors { padding-left: 0; }
 }
 
 .auth-tabs { display: inline-flex; margin-bottom: 18px; }
+
+/* Room spec sheet + community contributions */
+.room-facts { margin-top: 14px; }
+.fact-cta {
+  font: 600 .85rem var(--body); color: var(--ticket-red); background: #a8231b12;
+  border: 1px dashed #a8231b88; border-radius: 999px; padding: 3px 10px; cursor: pointer;
+}
+.fact-cta:hover { background: #a8231b22; }
+.fact-source { font: .72rem var(--body); color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; }
+.fact-form {
+  margin-top: 14px; padding: 14px; border: 2px dashed #2b1a1033; border-radius: 10px;
+  display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; color: var(--ink);
+}
+.fact-form p { margin: 0; }
+.fact-form .field { flex: 1 1 220px; color: var(--ink-soft); }
+.fact-form select { background: #fffaf0; color: var(--ink); border-color: #2b1a1033; }
+.ticket .link-button { color: var(--ink-soft); }
+.badge-toast {
+  margin-top: 14px; padding: 12px 16px; border-radius: 10px; background: var(--ticket-red); color: var(--paper);
+  display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; animation: pop .35s ease-out;
+}
+.badge-toast p { margin: 0; }
+.badge-toast .link-button { color: var(--paper); margin-left: auto; }
+@keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Badge collection: earned stubs are printed, locked ones are blank stock */
+.badge-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.badge-stub {
+  position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+  padding: 16px 12px 14px; border-radius: 10px; background: var(--bg-raised); border: 2px dashed var(--line);
+  color: var(--muted); font-size: .85rem;
+}
+.badge-stub-emoji { font-size: 2rem; filter: grayscale(1) opacity(.35); }
+.badge-stub strong { font-family: var(--display); font-size: .95rem; }
+.badge-stub-hint { font-size: .74rem; }
+.badge-stub.earned {
+  background: var(--paper); color: var(--ink); border: 0; border-top: 2px dashed #2b1a1040;
+  filter: drop-shadow(0 8px 16px #0007); transform: rotate(-1deg);
+}
+.badge-stub.earned:nth-child(even) { transform: rotate(1.2deg); }
+.badge-stub.earned .badge-stub-emoji { filter: none; }
+.badge-stub.earned .badge-stub-hint { color: var(--ticket-red); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; font-size: .62rem; }
+
+.cinema-links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .92rem; }
+.site-footer a { color: var(--muted); }

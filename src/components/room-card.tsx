@@ -5,6 +5,7 @@ import { Lanterns } from './lanterns'
 import { Ticket, ticketSerial } from './ticket'
 
 export function FormatBadge({ format }: { format: RoomSummary['format'] }) {
+  if (!format) return null
   return <span className={`badge badge-${format}`}>{FORMATS[format]}</span>
 }
 

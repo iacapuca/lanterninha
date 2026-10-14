@@ -76,6 +76,9 @@ function ExplorePage() {
             onChange={(e) => setFilter({ city: e.target.value || undefined })}
           >
             <option value="">Todas</option>
+            {search.city && !cities.some((c) => c.city === search.city) && (
+              <option value={search.city}>{search.city}</option>
+            )}
             {cities.map((c) => (
               <option key={c.city} value={c.city}>
                 {c.city} ({c.rooms})
@@ -89,7 +92,7 @@ function ExplorePage() {
           <select
             name="state"
             value={search.state ?? ''}
-            onChange={(e) => setFilter({ state: fields.state.parse(e.target.value) })}
+            onChange={(e) => setFilter({ state: fields.state.parse(e.target.value), city: undefined })}
           >
             <option value="">Todas</option>
             {STATES.map((uf) => (

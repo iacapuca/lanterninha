@@ -50,26 +50,70 @@ export const TAGS = [
 ] as const
 export type Tag = (typeof TAGS)[number]
 
+export const PROJECTIONS = {
+  'digital-2k': 'Digital 2K',
+  'digital-4k': 'Digital 4K',
+  laser: 'Laser',
+  'laser-4k': 'Laser 4K',
+  '35mm': 'Película 35mm',
+  '70mm': 'Película 70mm',
+} as const
+export type Projection = keyof typeof PROJECTIONS
+
+export const SOUNDS = {
+  '5.1': '5.1',
+  '7.1': '7.1',
+  atmos: 'Dolby Atmos',
+  'dts-x': 'DTS:X',
+  imax: 'IMAX',
+} as const
+export type Sound = keyof typeof SOUNDS
+
+/** Room details the community can fill in, with the options and pt-BR copy for each. */
+export const ROOM_FACTS = {
+  format: { label: 'Tipo de tela', cta: 'Adicione o tipo de tela', options: FORMATS },
+  projection: { label: 'Projeção', cta: 'Adicione a projeção', options: PROJECTIONS },
+  sound: { label: 'Som', cta: 'Adicione o som', options: SOUNDS },
+} as const
+export type RoomFactField = keyof typeof ROOM_FACTS
+export const ROOM_FACT_FIELDS = Object.keys(ROOM_FACTS) as RoomFactField[]
+
+/** Where a room detail came from: detected in ANCINE's room name, or voted by the community. */
+export type FactSource = 'ancine' | 'community'
+
 export type Cinema = {
   id: string
+  ancineId: string | null
   name: string
   chain: string
   city: string
   state: State
   neighborhood: string
   address: string
-  lat: number
-  lng: number
+  cep: string | null
+  website: string | null
+  lat: number | null
+  lng: number | null
+  /** 'address' = geocoded street address; 'city' = municipality centroid (approximate). */
+  geoPrecision: 'address' | 'city' | null
 }
 
 export type Room = {
   id: string
+  ancineId: string | null
   cinemaId: string
   name: string
-  format: Format
+  format: Format | null
+  formatSource: FactSource | null
+  projection: Projection | null
+  projectionSource: FactSource | null
+  sound: Sound | null
+  soundSource: FactSource | null
   seats: number
-  projection: string
-  sound: string
+  wheelchairSeats: number
+  reducedMobilitySeats: number
+  largeSeats: number
+  accessibleRestroom: boolean
   accessible: boolean
 }
 
@@ -107,3 +151,30 @@ export type ReviewWithRoom = Review & {
 export type Viewer = { username: string } | null
 
 export const RATINGS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5] as const
+
+/** What a user has done, counted on the server; badges are derived from it (no stored state). */
+export type ContributionStats = {
+  reviews: number
+  cities: number
+  format: number
+  projection: number
+  sound: number
+  /** Room details where this user's answer was the first one anyone gave. */
+  firstAnswers: number
+}
+
+export const BADGES = [
+  { id: 'first-review', emoji: '🎟️', name: 'Primeira sessão', hint: 'Avalie sua primeira sala', earned: (s: ContributionStats) => s.reviews >= 1 },
+  { id: 'regular', emoji: '🔦', name: 'Lanterninha de plantão', hint: 'Avalie 10 salas', earned: (s: ContributionStats) => s.reviews >= 10 },
+  { id: 'traveler', emoji: '🧭', name: 'Cinéfilo viajante', hint: 'Avalie salas em 3 cidades', earned: (s: ContributionStats) => s.cities >= 3 },
+  { id: 'screen-spotter', emoji: '🖼️', name: 'Olho de tela', hint: 'Informe o tipo de tela de uma sala', earned: (s: ContributionStats) => s.format >= 1 },
+  { id: 'screen-inspector', emoji: '📐', name: 'Fiscal de tela', hint: 'Informe o tipo de tela de 10 salas', earned: (s: ContributionStats) => s.format >= 10 },
+  { id: 'projectionist', emoji: '📽️', name: 'Projecionista', hint: 'Informe a projeção de 5 salas', earned: (s: ContributionStats) => s.projection >= 5 },
+  { id: 'sharp-ears', emoji: '🎧', name: 'Ouvido apurado', hint: 'Informe o som de 5 salas', earned: (s: ContributionStats) => s.sound >= 5 },
+  { id: 'trailblazer', emoji: '🚩', name: 'Abre-alas', hint: 'Seja a primeira pessoa a informar um detalhe de uma sala', earned: (s: ContributionStats) => s.firstAnswers >= 1 },
+] as const
+export type BadgeId = (typeof BADGES)[number]['id']
+
+export function earnedBadges(stats: ContributionStats): BadgeId[] {
+  return BADGES.filter((b) => b.earned(stats)).map((b) => b.id)
+}

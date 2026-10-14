@@ -2,7 +2,7 @@
 // and by server function `.validator()` (enforced at the server boundary).
 // Error messages are pt-BR because they are shown to users.
 import { z } from 'zod'
-import { FORMAT_IDS, RATINGS, STATES, TAGS } from './domain'
+import { FORMAT_IDS, PROJECTIONS, RATINGS, SOUNDS, STATES, TAGS } from './domain'
 
 export const SORTS = ['rating', 'reviews', 'recent', 'name'] as const
 
@@ -84,3 +84,18 @@ export const newReviewSchema = z.object({
 })
 export type NewReview = z.infer<typeof newReviewSchema>
 export type NewReviewInput = z.input<typeof newReviewSchema>
+
+/** A vote for one room detail; the value must be one of that field's options. */
+export const roomFactVoteSchema = z.discriminatedUnion('field', [
+  z.object({ roomId: z.string().min(1).max(120), field: z.literal('format'), value: z.enum(FORMAT_IDS) }),
+  z.object({
+    roomId: z.string().min(1).max(120),
+    field: z.literal('projection'),
+    value: z.enum(Object.keys(PROJECTIONS) as [keyof typeof PROJECTIONS, ...Array<keyof typeof PROJECTIONS>]),
+  }),
+  z.object({
+    roomId: z.string().min(1).max(120),
+    field: z.literal('sound'),
+    value: z.enum(Object.keys(SOUNDS) as [keyof typeof SOUNDS, ...Array<keyof typeof SOUNDS>]),
+  }),
+])

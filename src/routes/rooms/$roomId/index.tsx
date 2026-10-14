@@ -5,8 +5,8 @@ import { formatRating, pluralize } from '~/lib/format'
 import { REVIEW_SORTS, ROOM_SEARCH_DEFAULTS, roomSearchSchema } from '~/lib/schemas'
 import { Lanterns } from '~/components/lanterns'
 import { ReviewItem, ReviewListSkeleton } from '~/components/review-item'
-import { FormatBadge } from '~/components/room-card'
 import { Ticket, ticketSerial } from '~/components/ticket'
+import { RoomFacts } from '~/components/room-facts'
 
 const REVIEW_SORT_LABELS = { recent: 'Recentes', best: 'Melhores', worst: 'Piores' } as const
 
@@ -98,28 +98,27 @@ function RoomPage() {
         <h1>{room.name}</h1>
         <dl className="ticket-fields">
           <div>
-            <dt>Formato</dt>
-            <dd>
-              <FormatBadge format={room.format} />
-            </dd>
-          </div>
-          <div>
             <dt>Lugares</dt>
             <dd>{room.seats}</dd>
           </div>
           <div>
-            <dt>Projeção</dt>
-            <dd>{room.projection}</dd>
-          </div>
-          <div>
-            <dt>Som</dt>
-            <dd>{room.sound}</dd>
-          </div>
-          <div>
-            <dt>Acessível</dt>
-            <dd>{room.accessible ? 'Sim ♿' : 'Não'}</dd>
+            <dt>Acessibilidade</dt>
+            <dd>
+              {room.wheelchairSeats > 0
+                ? `${pluralize(room.wheelchairSeats, 'lugar', 'lugares')} p/ cadeirantes`
+                : 'Sem lugares p/ cadeirantes'}
+              {room.reducedMobilitySeats > 0 && ` · ${room.reducedMobilitySeats} mob. reduzida`}
+              {room.accessibleRestroom && ' · banheiro acessível'}
+            </dd>
           </div>
         </dl>
+        <RoomFacts
+          roomId={room.id}
+          values={{ format: room.format, projection: room.projection, sound: room.sound }}
+          sources={{ format: room.formatSource, projection: room.projectionSource, sound: room.soundSource }}
+          votes={room.facts.votes}
+          mine={room.facts.mine}
+        />
       </Ticket>
 
       <div className="split">

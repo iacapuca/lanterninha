@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
-import { newReviewSchema } from '~/lib/schemas'
+import { earnedBadges } from '~/lib/domain'
+import { newReviewSchema, roomFactVoteSchema } from '~/lib/schemas'
 import * as store from '~/server/store.server'
 import { requireSession } from './auth.middleware'
 
@@ -22,4 +23,16 @@ export const createReview = createServerFn({ method: 'POST' })
     }
     if (!result.ok) throw new Error(ERRORS[result.reason])
     return { id: result.id, roomId: result.roomId }
+  })
+
+/** Fill in a room detail (format, projection or sound); returns any badges it unlocked. */
+export const voteRoomFact = createServerFn({ method: 'POST' })
+  .middleware([requireSession])
+  .validator(roomFactVoteSchema)
+  .handler(async ({ data, context }) => {
+    const before = earnedBadges(await store.getContributionStats(context.userId))
+    const result = await store.voteRoomFact(context.userId, data.roomId, data.field, data.value)
+    if (!result.ok) throw new Error(ERRORS[result.reason])
+    const after = earnedBadges(await store.getContributionStats(context.userId))
+    return { newBadges: after.filter((b) => !before.includes(b)) }
   })

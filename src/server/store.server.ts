@@ -1,11 +1,21 @@
 // The only module that queries the database. The `.server.ts` suffix puts it
 // behind Start's import protection: importing it from client code fails the build.
-import { and, asc, count, desc, eq, gte, sql, type SQL } from 'drizzle-orm'
-import type { Criterion, Review, ReviewWithRoom, RoomStats, RoomSummary, Tag } from '~/lib/domain'
+import { and, asc, count, desc, eq, getColumns, gte, isNotNull, sql, type SQL } from 'drizzle-orm'
+import type {
+  ContributionStats,
+  Criterion,
+  Review,
+  ReviewWithRoom,
+  RoomFactField,
+  RoomStats,
+  RoomSummary,
+  State,
+  Tag,
+} from '~/lib/domain'
 import { CRITERION_IDS, RATINGS } from '~/lib/domain'
 import type { ExploreSearch, NewReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, review, room } from './db/schema.server'
+import { cinema, review, room, roomFact } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -35,26 +45,11 @@ const roomStats = db
 
 const reviewCountOrZero = sql<number>`coalesce(${roomStats.reviewCount}, 0)`
 
+const { searchText: _searchText, ...roomColumns } = getColumns(room)
+
 const summaryFields = {
-  id: room.id,
-  cinemaId: room.cinemaId,
-  name: room.name,
-  format: room.format,
-  seats: room.seats,
-  projection: room.projection,
-  sound: room.sound,
-  accessible: room.accessible,
-  cinema: {
-    id: cinema.id,
-    name: cinema.name,
-    chain: cinema.chain,
-    city: cinema.city,
-    state: cinema.state,
-    neighborhood: cinema.neighborhood,
-    address: cinema.address,
-    lat: cinema.lat,
-    lng: cinema.lng,
-  },
+  ...roomColumns,
+  cinema: getColumns(cinema),
   average: roomStats.average,
   reviewCount: reviewCountOrZero,
 }
@@ -106,13 +101,16 @@ export async function searchRooms(filters: ExploreSearch) {
   return { rooms: rows.map(toSummary), total, page, pageCount }
 }
 
-export async function listCities() {
+/** Cities with rooms, busiest first; all of a state's cities, or the top 60 nationwide. */
+export async function listCities(state?: State) {
   return db
     .select({ city: cinema.city, state: cinema.state, rooms: count(room.id) })
     .from(room)
     .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .where(state ? eq(cinema.state, state) : undefined)
     .groupBy(cinema.city, cinema.state)
     .orderBy(desc(count(room.id)), asc(cinema.city))
+    .limit(state ? 1000 : 60)
 }
 
 export async function getRoom(id: string) {
@@ -130,8 +128,9 @@ export async function getTopRooms(limit: number) {
 export async function getCinema(id: string) {
   const found = await db.query.cinema.findFirst({ where: { id } })
   if (!found) return null
-  const rooms = await selectSummaries(eq(room.cinemaId, id)).orderBy(asc(room.name))
-  return { cinema: found, rooms: rooms.map(toSummary) }
+  const rooms = (await selectSummaries(eq(room.cinemaId, id))).map(toSummary)
+  rooms.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }))
+  return { cinema: found, rooms }
 }
 
 // ---------- Reviews (relational queries) ----------
@@ -279,8 +278,9 @@ export async function getCinemaLocations() {
       state: cinema.state,
       neighborhood: cinema.neighborhood,
       address: cinema.address,
-      lat: cinema.lat,
-      lng: cinema.lng,
+      lat: sql<number>`${cinema.lat}`,
+      lng: sql<number>`${cinema.lng}`,
+      geoPrecision: cinema.geoPrecision,
       roomCount: sql<number>`count(distinct ${room.id})`,
       average: sql<number | null>`avg(${review.rating})`,
       reviewCount: count(review.id),
@@ -288,6 +288,7 @@ export async function getCinemaLocations() {
     .from(cinema)
     .leftJoin(room, eq(room.cinemaId, cinema.id))
     .leftJoin(review, eq(review.roomId, room.id))
+    .where(isNotNull(cinema.lat))
     .groupBy(cinema.id)
   return rows.map((r) => ({ ...r, average: round1(r.average) }))
 }
@@ -340,4 +341,104 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
     throw error
   }
   return { ok: true, id, roomId: input.roomId }
+}
+
+// ---------- Community room facts (format, projection, sound) ----------
+
+/** Votes needed for the community to override a value detected in ANCINE's room name. */
+const OVERRIDE_ANCINE_AT = 3
+
+const sourceColumn = {
+  format: { value: room.format, source: room.formatSource },
+  projection: { value: room.projection, source: room.projectionSource },
+  sound: { value: room.sound, source: room.soundSource },
+} as const
+
+export type FactVotes = Record<RoomFactField, Array<{ value: string; votes: number }>>
+
+export async function getRoomFactVotes(roomId: string, userId?: string) {
+  const rows = await db
+    .select({ field: roomFact.field, value: roomFact.value, votes: count() })
+    .from(roomFact)
+    .where(eq(roomFact.roomId, roomId))
+    .groupBy(roomFact.field, roomFact.value)
+    .orderBy(desc(count()))
+  const votes: FactVotes = { format: [], projection: [], sound: [] }
+  for (const r of rows) votes[r.field].push({ value: r.value, votes: r.votes })
+
+  const mine = userId
+    ? await db.query.roomFact.findMany({ where: { roomId, userId }, columns: { field: true, value: true } })
+    : []
+  return { votes, mine: Object.fromEntries(mine.map((m) => [m.field, m.value])) as Partial<Record<RoomFactField, string>> }
+}
+
+/**
+ * Records (or changes) one user's answer, then recomputes what the room shows:
+ * the most-voted answer, unless ANCINE's room name already says otherwise and
+ * fewer than OVERRIDE_ANCINE_AT people disagree.
+ */
+export async function voteRoomFact(userId: string, roomId: string, field: RoomFactField, value: string) {
+  const [target] = await db.select({ id: room.id }).from(room).where(eq(room.id, roomId)).limit(1)
+  if (!target) return { ok: false as const, reason: 'unknown-room' as const }
+
+  await db
+    .insert(roomFact)
+    .values({ id: crypto.randomUUID(), roomId, userId, field, value, createdAt: new Date() })
+    .onConflictDoUpdate({
+      target: [roomFact.userId, roomFact.roomId, roomFact.field],
+      // Keep the original timestamp so changing an answer doesn't lose "first answer" credit.
+      set: { value },
+    })
+
+  const { votes } = await getRoomFactVotes(roomId)
+  const top = votes[field][0]
+  const columns = sourceColumn[field]
+  const [current] = await db.select({ source: columns.source }).from(room).where(eq(room.id, roomId))
+  if (top && (current?.source !== 'ancine' || top.votes >= OVERRIDE_ANCINE_AT)) {
+    await db
+      .update(room)
+      .set({ [field]: top.value, [`${field}Source`]: 'community' })
+      .where(eq(room.id, roomId))
+  }
+  return { ok: true as const }
+}
+
+export async function getContributionStats(userId: string): Promise<ContributionStats> {
+  const [[reviewTotals], facts, [firsts]] = await db.batch([
+    db
+      .select({ reviews: count(), cities: sql<number>`count(distinct ${cinema.city})` })
+      .from(review)
+      .innerJoin(room, eq(review.roomId, room.id))
+      .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+      .where(eq(review.userId, userId)),
+    db
+      .select({ field: roomFact.field, n: count() })
+      .from(roomFact)
+      .where(eq(roomFact.userId, userId))
+      .groupBy(roomFact.field),
+    // Answers that were the first anyone gave for that room detail.
+    db
+      .select({ n: count() })
+      .from(roomFact)
+      .where(
+        and(
+          eq(roomFact.userId, userId),
+          sql`not exists (select 1 from ${roomFact} as earlier where earlier.room_id = ${roomFact.roomId} and earlier.field = ${roomFact.field} and earlier.created_at < ${roomFact.createdAt})`,
+        ),
+      ),
+  ])
+  const byField = Object.fromEntries(facts.map((f) => [f.field, f.n]))
+  return {
+    reviews: reviewTotals?.reviews ?? 0,
+    cities: reviewTotals?.cities ?? 0,
+    format: byField.format ?? 0,
+    projection: byField.projection ?? 0,
+    sound: byField.sound ?? 0,
+    firstAnswers: firsts?.n ?? 0,
+  }
+}
+
+export async function getUserIdByUsername(username: string) {
+  const found = await db.query.user.findFirst({ where: { username }, columns: { id: true } })
+  return found?.id ?? null
 }

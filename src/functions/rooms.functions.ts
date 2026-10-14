@@ -4,7 +4,10 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { getRequestHeaders } from '@tanstack/react-start/server'
+import { earnedBadges } from '~/lib/domain'
 import { exploreSearchSchema, roomSearchSchema } from '~/lib/schemas'
+import { auth } from '~/server/auth.server'
 import { slowQuery } from '~/server/latency.server'
 import * as store from '~/server/store.server'
 
@@ -26,7 +29,7 @@ export const getRecentReviews = createServerFn({ method: 'GET' })
 export const searchRooms = createServerFn({ method: 'GET' })
   .validator(exploreSearchSchema)
   .handler(async ({ data }) => {
-    const [result, cities] = await Promise.all([store.searchRooms(data), store.listCities()])
+    const [result, cities] = await Promise.all([store.searchRooms(data), store.listCities(data.state)])
     return { ...result, cities }
   })
 
@@ -35,7 +38,9 @@ export const getRoom = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const room = await store.getRoom(data.id)
     if (!room) throw notFound()
-    return room
+    const session = await auth.api.getSession({ headers: getRequestHeaders() })
+    const facts = await store.getRoomFactVotes(data.id, session?.user.id)
+    return { ...room, facts }
   })
 
 export const getRoomStats = createServerFn({ method: 'GET' })
@@ -63,9 +68,12 @@ export const getCinema = createServerFn({ method: 'GET' })
 export const getUserProfile = createServerFn({ method: 'GET' })
   .validator(z.object({ username: z.string().min(1).max(24) }))
   .handler(async ({ data }) => {
-    const profile = await store.getUserProfile(data.username)
-    if (!profile) throw notFound()
-    return profile
+    const [profile, userId] = await Promise.all([
+      store.getUserProfile(data.username),
+      store.getUserIdByUsername(data.username),
+    ])
+    if (!profile || !userId) throw notFound()
+    return { ...profile, badges: earnedBadges(await store.getContributionStats(userId)) }
   })
 
 export const getCinemaLocations = createServerFn({ method: 'GET' }).handler(() =>

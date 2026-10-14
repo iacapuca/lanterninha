@@ -70,6 +70,9 @@ function RootComponent() {
       <footer className="site-footer container">
         <p>
           Lanterninha · avaliações de salas de cinema escritas pela comunidade.
+          <br />
+          Salas e complexos: <a href="https://dados.gov.br/dados/conjuntos-dados/salas-de-exibicao-e-complexos-registrados-na-ancine">ANCINE, dados abertos (CC BY)</a>
+          {' · '}Localizações: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors
         </p>
       </footer>
     </>

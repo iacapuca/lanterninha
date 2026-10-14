@@ -13,24 +13,62 @@ The code is in English; the UI copy is in pt-BR.
 ```sh
 pnpm install
 cp .dev.vars.example .dev.vars   # BETTER_AUTH_SECRET, SLOW_QUERY_MS
-pnpm db:migrate:local && pnpm db:seed:local
+pnpm ancine:download && pnpm ancine:build
+pnpm db:migrate:local && pnpm db:import:local
 pnpm dev          # http://localhost:3000 (SSR + local D1 run inside workerd)
 pnpm typecheck
 pnpm run deploy   # vite build && wrangler deploy
 ```
+
+### Data
+
+Venues come from ANCINE's open data, *Salas de Exibição e Complexos Registrados*
+(monthly, CC BY): every open complex and room in Brazil, with seats and
+accessibility. Coordinates come from municipality centroids
+([kelvins/municipios-brasileiros](https://github.com/kelvins/municipios-brasileiros), MIT)
+and, for capitals, OpenStreetMap Nominatim (© OpenStreetMap contributors, ODbL).
+
+```sh
+pnpm ancine:download      # fetch the latest CSV into db/ancine/ (git-ignored)
+pnpm ancine:geocode       # address-level coordinates for capitals (cached in db/geo/geocode-cache.json)
+pnpm ancine:build         # write db/ancine/import.sql + db/demo/seed.sql
+pnpm db:import:remote     # upsert venues and demo reviews into D1 (idempotent)
+```
+
+The import upserts by ANCINE registration number:
+- **Friendly names:** "715 CINEMARK ELDORADO" becomes "Cinemark Eldorado", and
+  "UCI RIBEIRO - S C R - 03" becomes "Sala 3".
+- **Formats** are filled in only when ANCINE's name says so (IMAX, XD, VIP…).
+- **Community votes survive re-imports.**
+- **Closed rooms are removed,** unless they have reviews.
+
+Demo reviews (`db/demo/`) are fictional and placed on real rooms in 18 well-known
+venues. Demo users have no credentials.
 
 ### Database
 
 ```sh
 pnpm db:generate          # drizzle-kit generate + copy into migrations/
 pnpm db:migrate:remote    # wrangler d1 migrations apply --remote
-pnpm db:seed:generate     # rebuild db/seed.sql from db/seed-data.ts
-pnpm db:seed:remote       # idempotent (INSERT OR IGNORE)
 ```
 
 drizzle-kit 1.x writes one folder per migration, but Wrangler applies flat
 `.sql` files, so `db/sync-migrations.ts` copies `drizzle/*/migration.sql` into
-`migrations/`. Wrangler tracks which ones have been applied.
+`migrations/`. Review generated SQL before applying it. D1 ignores
+`PRAGMA foreign_keys=OFF` inside migrations, so table rebuilds that drizzle-kit
+emits can cascade. `20261014233241_ancine_and_room_facts` is hand-edited for
+that reason.
+
+### Community details and badges
+
+ANCINE doesn't record screen type, projection or sound. Rooms show
+"Adicione o tipo de tela" and similar calls to action, and signed-in users vote
+from fixed options. A room shows the most-voted answer ("segundo N pessoas").
+A value detected in ANCINE's name only gets overridden once 3 people disagree.
+
+Badges are derived from contributions and reviews (`BADGES` in
+`src/lib/domain.ts`), so there's no badge state to keep in sync. The profile
+shows them as a collection of ticket stubs.
 
 ### Auth
 
@@ -93,8 +131,7 @@ Secrets: `wrangler secret put BETTER_AUTH_SECRET`. The D1 binding is `DB`, and `
 ## Known limitations
 
 - No email verification or password reset yet (both need an email provider).
-- Venues are real; reviews and the 15 seed users are generated demo data.
-  Seed users have no credentials, so nobody can sign in as them.
-- Room data is curated by hand. ANCINE's open data (monthly *complexos e
-  salas* dataset: seats, accessibility, exhibitor) is the natural source for
-  an importer.
+- Coordinates outside state capitals are the city centre, so distances are
+  approximate (shown with ~). Run `node db/geo/geocode.ts --all` to geocode
+  everything (about 30 minutes at Nominatim's rate limit).
+- Formats come from ANCINE room names or community votes. Most rooms start unknown.

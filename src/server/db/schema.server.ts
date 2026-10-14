@@ -2,7 +2,7 @@
 // `username` plugin); TypeScript keys must keep Better Auth's field names.
 import { sql } from 'drizzle-orm'
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import type { Format, State, Tag } from '~/lib/domain'
+import type { FactSource, Format, Projection, RoomFactField, Sound, State, Tag } from '~/lib/domain'
 
 const timestamps = {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -82,14 +82,19 @@ export const cinema = sqliteTable(
   'cinema',
   {
     id: text('id').primaryKey(),
+    /** ANCINE complex registration number; the key for re-imports. */
+    ancineId: text('ancine_id').unique(),
     name: text('name').notNull(),
     chain: text('chain').notNull(),
     city: text('city').notNull(),
     state: text('state').$type<State>().notNull(),
     neighborhood: text('neighborhood').notNull(),
     address: text('address').notNull(),
-    lat: real('lat').notNull(),
-    lng: real('lng').notNull(),
+    cep: text('cep'),
+    website: text('website'),
+    lat: real('lat'),
+    lng: real('lng'),
+    geoPrecision: text('geo_precision').$type<'address' | 'city'>(),
   },
   (t) => [index('cinema_city_idx').on(t.city), index('cinema_state_idx').on(t.state)],
 )
@@ -98,19 +103,50 @@ export const room = sqliteTable(
   'room',
   {
     id: text('id').primaryKey(),
+    /** ANCINE room registration number; the key for re-imports. */
+    ancineId: text('ancine_id').unique(),
     cinemaId: text('cinema_id')
       .notNull()
       .references(() => cinema.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    format: text('format').$type<Format>().notNull(),
+    // Effective value plus where it came from; community values are recomputed on every vote.
+    format: text('format').$type<Format>(),
+    formatSource: text('format_source').$type<FactSource>(),
+    projection: text('projection').$type<Projection>(),
+    projectionSource: text('projection_source').$type<FactSource>(),
+    sound: text('sound').$type<Sound>(),
+    soundSource: text('sound_source').$type<FactSource>(),
     seats: integer('seats').notNull(),
-    projection: text('projection').notNull(),
-    sound: text('sound').notNull(),
+    wheelchairSeats: integer('wheelchair_seats').notNull().default(0),
+    reducedMobilitySeats: integer('reduced_mobility_seats').notNull().default(0),
+    largeSeats: integer('large_seats').notNull().default(0),
+    accessibleRestroom: integer('accessible_restroom', { mode: 'boolean' }).notNull().default(false),
     accessible: integer('accessible', { mode: 'boolean' }).notNull(),
     /** Lower-cased, accent-free text of room + cinema, for LIKE search (SQLite can't fold accents). */
     searchText: text('search_text').notNull(),
   },
   (t) => [index('room_cinema_id_idx').on(t.cinemaId), index('room_format_idx').on(t.format)],
+)
+
+/** One user's answer for one room detail (format, projection or sound). */
+export const roomFact = sqliteTable(
+  'room_fact',
+  {
+    id: text('id').primaryKey(),
+    roomId: text('room_id')
+      .notNull()
+      .references(() => room.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    field: text('field').$type<RoomFactField>().notNull(),
+    value: text('value').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('room_fact_one_vote_idx').on(t.userId, t.roomId, t.field),
+    index('room_fact_room_field_idx').on(t.roomId, t.field),
+  ],
 )
 
 export const review = sqliteTable(
