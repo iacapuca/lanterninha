@@ -27,9 +27,9 @@ for (const c of complexes) {
   else if (city) approximate++
 
   lines.push(
-    `INSERT INTO cinema (id, ancine_id, name, chain, city, state, neighborhood, address, cep, website, lat, lng, geo_precision) VALUES (${[
-      c.id, c.ancineId, c.name, c.chain, c.city, c.state, c.neighborhood, c.address, c.cep, c.website, lat, lng, precision,
-    ].map(q).join(', ')}) ON CONFLICT(ancine_id) DO UPDATE SET name = excluded.name, chain = excluded.chain, city = excluded.city, state = excluded.state, neighborhood = excluded.neighborhood, address = excluded.address, cep = excluded.cep, website = excluded.website, lat = excluded.lat, lng = excluded.lng, geo_precision = excluded.geo_precision;`,
+    `INSERT INTO cinema (id, ancine_id, name, chain, city, state, neighborhood, address, cep, cnpj, website, lat, lng, geo_precision) VALUES (${[
+      c.id, c.ancineId, c.name, c.chain, c.city, c.state, c.neighborhood, c.address, c.cep, c.cnpj, c.website, lat, lng, precision,
+    ].map(q).join(', ')}) ON CONFLICT(ancine_id) DO UPDATE SET name = excluded.name, chain = excluded.chain, city = excluded.city, state = excluded.state, neighborhood = excluded.neighborhood, address = excluded.address, cep = excluded.cep, cnpj = excluded.cnpj, website = excluded.website, lat = excluded.lat, lng = excluded.lng, geo_precision = excluded.geo_precision;`,
   )
 
   for (const r of c.rooms) {
@@ -40,7 +40,7 @@ for (const c of complexes) {
       ].map(q).join(', ')}, (SELECT id FROM cinema WHERE ancine_id = ${q(c.ancineId)}), ${[
         r.name, r.format, r.format ? 'ancine' : null, r.seats, r.wheelchairSeats, r.reducedMobilitySeats,
         r.largeSeats, r.accessibleRestroom, r.accessible, searchText,
-      ].map(q).join(', ')}) ON CONFLICT(ancine_id) DO UPDATE SET cinema_id = excluded.cinema_id, name = excluded.name, seats = excluded.seats, wheelchair_seats = excluded.wheelchair_seats, reduced_mobility_seats = excluded.reduced_mobility_seats, large_seats = excluded.large_seats, accessible_restroom = excluded.accessible_restroom, accessible = excluded.accessible, search_text = excluded.search_text, format = CASE WHEN room.format_source = 'community' THEN room.format ELSE excluded.format END, format_source = CASE WHEN room.format_source = 'community' THEN room.format_source ELSE excluded.format_source END;`,
+      ].map(q).join(', ')}) ON CONFLICT(ancine_id) DO UPDATE SET cinema_id = excluded.cinema_id, name = excluded.name, seats = excluded.seats, wheelchair_seats = excluded.wheelchair_seats, reduced_mobility_seats = excluded.reduced_mobility_seats, large_seats = excluded.large_seats, accessible_restroom = excluded.accessible_restroom, accessible = excluded.accessible, search_text = excluded.search_text, format = CASE WHEN room.format_source IN ('community', 'ingresso') THEN room.format ELSE excluded.format END, format_source = CASE WHEN room.format_source IN ('community', 'ingresso') THEN room.format_source ELSE excluded.format_source END;`,
     )
   }
 }

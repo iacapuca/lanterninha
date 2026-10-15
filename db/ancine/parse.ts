@@ -30,6 +30,8 @@ export type AncineComplex = {
   /** Street + number as filed, for geocoding. */
   street: string
   cep: string | null
+  /** Digits only; the most common room CNPJ in the complex. */
+  cnpj: string | null
   website: string | null
   rooms: AncineRoom[]
 }
@@ -186,6 +188,12 @@ function roomNames(rawRooms: Record<string, string>[], complex: string) {
   })
 }
 
+function mostCommon(values: string[]) {
+  const counts = new Map<string, number>()
+  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+}
+
 const int = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : 0)
 const yes = (v: string | undefined) => fold(v ?? '') === 'SIM'
 
@@ -235,6 +243,7 @@ export function loadOpenComplexes(path = CSV_PATH): AncineComplex[] {
         street,
         cep: /^\d{5}-?\d{3}$/.test(first['CEP_COMPLEXO'] ?? '') ? first['CEP_COMPLEXO']!.replace(/^(\d{5})(\d{3})$/, '$1-$2') : null,
         website: website(first['PAGINA_ELETRONICA_COMPLEXO'] ?? ''),
+        cnpj: mostCommon(raw.map((r) => (r['CNPJ_SALA'] ?? '').replace(/\D/g, '')).filter((c) => c.length === 14)),
         rooms: raw
           .map((r, i) => {
           const wheelchairSeats = int(r['ASSENTOS_CADEIRANTES'])

@@ -345,7 +345,7 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
 
 // ---------- Community room facts (format, projection, sound) ----------
 
-/** Votes needed for the community to override a value detected in ANCINE's room name. */
+/** Votes needed for the community to override a value from ANCINE's room name or Ingresso.com. */
 const OVERRIDE_ANCINE_AT = 3
 
 const sourceColumn = {
@@ -394,7 +394,8 @@ export async function voteRoomFact(userId: string, roomId: string, field: RoomFa
   const top = votes[field][0]
   const columns = sourceColumn[field]
   const [current] = await db.select({ source: columns.source }).from(room).where(eq(room.id, roomId))
-  if (top && (current?.source !== 'ancine' || top.votes >= OVERRIDE_ANCINE_AT)) {
+  const fromSource = current?.source === 'ancine' || current?.source === 'ingresso'
+  if (top && (!fromSource || top.votes >= OVERRIDE_ANCINE_AT)) {
     await db
       .update(room)
       .set({ [field]: top.value, [`${field}Source`]: 'community' })
@@ -441,4 +442,43 @@ export async function getContributionStats(userId: string): Promise<Contribution
 export async function getUserIdByUsername(username: string) {
   const found = await db.query.user.findFirst({ where: { username }, columns: { id: true } })
   return found?.id ?? null
+}
+
+// ---------- Programme (Ingresso.com showtimes) ----------
+
+/** Upcoming showtimes for a room or a whole cinema, with their films. */
+export async function getProgramme(target: { roomId: string } | { cinemaId: string }) {
+  const where = 'roomId' in target ? { roomId: target.roomId } : { cinemaId: target.cinemaId }
+  const cinemaId =
+    'cinemaId' in target
+      ? target.cinemaId
+      : (await db.query.room.findFirst({ where: { id: target.roomId }, columns: { cinemaId: true } }))?.cinemaId
+  const linked = cinemaId
+    ? Boolean(await db.query.ingressoTheater.findFirst({ where: { cinemaId }, columns: { id: true } }))
+    : false
+  const state = cinemaId ? (await db.query.cinema.findFirst({ where: { id: cinemaId }, columns: { state: true } }))?.state : null
+  // "Today" in the cinema's own time zone, so late-night lists don't call tomorrow "today".
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: timeZoneOf(state ?? 'SP') }).format(new Date())
+  if (!linked) return { linked, today, showtimes: [] }
+
+  const showtimes = await db.query.showtime.findMany({
+    // Keep sessions that started up to 20 minutes ago (trailers are still on).
+    where: { ...where, startsAt: { gte: new Date(Date.now() - 20 * 60 * 1000) } },
+    orderBy: { startsAt: 'asc' },
+    limit: 400,
+    columns: { id: true, localDay: true, localTime: true, roomName: true, types: true, price: true, checkoutUrl: true },
+    with: {
+      film: { columns: { id: true, title: true, posterUrl: true, durationMinutes: true, contentRating: true, genres: true } },
+      room: { columns: { id: true, name: true } },
+    },
+  })
+  return { linked, today, showtimes }
+}
+
+/** Brazil's time zones by state (Fernando de Noronha and western Amazonas aside). */
+function timeZoneOf(state: State) {
+  if (state === 'AC') return 'America/Rio_Branco'
+  if (state === 'AM' || state === 'RR' || state === 'RO') return 'America/Manaus'
+  if (state === 'MT' || state === 'MS') return 'America/Cuiaba'
+  return 'America/Sao_Paulo'
 }

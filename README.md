@@ -59,6 +59,41 @@ drizzle-kit 1.x writes one folder per migration, but Wrangler applies flat
 emits can cascade. `20261014233241_ancine_and_room_facts` is hand-edited for
 that reason.
 
+### What's playing (Ingresso.com)
+
+A Worker cron (`*/5 * * * *`, `src/server.ts` → `src/server/ingresso/sync.server.ts`)
+syncs Ingresso.com's content API into D1 incrementally, staying under the free
+plan's subrequest limit:
+
+1. **Cities:** the city list is refreshed weekly.
+2. **Cinemas:** 5 cities' cinemas are refreshed per run. Each cinema is matched
+   to an ANCINE cinema by **CNPJ**, falling back to within 600 m with a shared
+   word in the name. A match brings exact coordinates and room-name hints
+   ("Sala 1 - LASER", "Sala 7 - IMAX").
+3. **Sessions:** today's and tomorrow's sessions are refreshed for 15 matched
+   cinemas per run (`INGRESSO_THEATER_BATCH`). Sessions link to our rooms by
+   room number. Session types fill in formats: a room that runs IMAX sessions
+   is IMAX.
+4. **Cleanup:** sessions that started more than 3 hours ago are deleted.
+
+Room details resolve **community vote > Ingresso.com > ANCINE name**. Rooms and
+cinemas show an "Em cartaz" programme linking to Ingresso.com's checkout, with
+times in the cinema's own time zone.
+
+**Status: paused.** Ingresso.com's CDN answers `403` to requests from
+Cloudflare Workers (the same requests work from a home connection), so the cron
+is disabled in `wrangler.jsonc` until Ingresso allows our traffic. Everything
+else is in place. Matching was verified locally: 19 of 22 cinemas matched,
+with real sessions on room and cinema pages.
+
+Requests identify themselves (`partnership=lanterninha` and a User-Agent).
+Ingresso's integration guide says partners should register at
+relacionamento@ingresso.com.
+
+The dev server runs TanStack's default entry, so it has no `scheduled` handler.
+To test the cron locally, use `pnpm build && pnpm exec vite preview`, then
+`POST /cdn-cgi/local/explorer/api/local/scheduled?worker=lanterninha`.
+
 ### Community details and badges
 
 ANCINE doesn't record screen type, projection or sound. Rooms show

@@ -38,7 +38,9 @@ export function RoomFacts({ roomId, values, sources, votes, mine }: Props) {
                   <button type="button" className="fact-source">
                     {sources[field] === 'community'
                       ? `segundo ${pluralize(total, 'pessoa', 'pessoas')}`
-                      : 'pelo nome na ANCINE'}{' '}
+                      : sources[field] === 'ingresso'
+                        ? 'via Ingresso.com'
+                        : 'pelo nome na ANCINE'}{' '}
                     · corrigir
                   </button>
                 ) : (

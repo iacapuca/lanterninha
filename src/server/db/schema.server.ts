@@ -91,12 +91,14 @@ export const cinema = sqliteTable(
     neighborhood: text('neighborhood').notNull(),
     address: text('address').notNull(),
     cep: text('cep'),
+    /** CNPJ (digits only) from ANCINE; how Ingresso.com theaters are matched. */
+    cnpj: text('cnpj'),
     website: text('website'),
     lat: real('lat'),
     lng: real('lng'),
     geoPrecision: text('geo_precision').$type<'address' | 'city'>(),
   },
-  (t) => [index('cinema_city_idx').on(t.city), index('cinema_state_idx').on(t.state)],
+  (t) => [index('cinema_city_idx').on(t.city), index('cinema_state_idx').on(t.state), index('cinema_cnpj_idx').on(t.cnpj)],
 )
 
 export const room = sqliteTable(
@@ -177,5 +179,81 @@ export const review = sqliteTable(
     index('review_user_created_idx').on(t.userId, t.createdAt),
     index('review_created_idx').on(t.createdAt),
     uniqueIndex('review_one_per_day_idx').on(t.userId, t.roomId, t.day),
+  ],
+)
+
+// ---------- Ingresso.com programme (synced by the scheduled job) ----------
+
+export const ingressoCity = sqliteTable('ingresso_city', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  state: text('state').$type<State>().notNull(),
+  theatersSyncedAt: integer('theaters_synced_at', { mode: 'timestamp_ms' }),
+})
+
+/** An Ingresso.com theater, linked to the ANCINE cinema it corresponds to (if any). */
+export const ingressoTheater = sqliteTable(
+  'ingresso_theater',
+  {
+    id: text('id').primaryKey(),
+    cityId: text('city_id').notNull(),
+    cinemaId: text('cinema_id').references(() => cinema.id, { onDelete: 'set null' }),
+    matchedBy: text('matched_by').$type<'cnpj' | 'location'>(),
+    name: text('name').notNull(),
+    cnpj: text('cnpj'),
+    lat: real('lat'),
+    lng: real('lng'),
+    siteUrl: text('site_url'),
+    sessionsSyncedAt: integer('sessions_synced_at', { mode: 'timestamp_ms' }),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [index('ingresso_theater_cinema_idx').on(t.cinemaId), index('ingresso_theater_synced_idx').on(t.sessionsSyncedAt)],
+)
+
+export const film = sqliteTable('film', {
+  /** Ingresso.com event id (ANCINE film ids are often missing there). */
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  originalTitle: text('original_title'),
+  ancineId: text('ancine_id'),
+  durationMinutes: integer('duration_minutes'),
+  contentRating: text('content_rating'),
+  releaseYear: integer('release_year'),
+  genres: text('genres', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  posterUrl: text('poster_url'),
+  siteUrl: text('site_url'),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const showtime = sqliteTable(
+  'showtime',
+  {
+    /** Ingresso.com session id. */
+    id: text('id').primaryKey(),
+    theaterId: text('theater_id')
+      .notNull()
+      .references(() => ingressoTheater.id, { onDelete: 'cascade' }),
+    cinemaId: text('cinema_id')
+      .notNull()
+      .references(() => cinema.id, { onDelete: 'cascade' }),
+    roomId: text('room_id').references(() => room.id, { onDelete: 'set null' }),
+    filmId: text('film_id')
+      .notNull()
+      .references(() => film.id, { onDelete: 'cascade' }),
+    startsAt: integer('starts_at', { mode: 'timestamp_ms' }).notNull(),
+    /** The cinema's own calendar day and clock time ("2026-10-14", "22:15"), as Ingresso gives them. */
+    localDay: text('local_day').notNull().default(''),
+    localTime: text('local_time').notNull().default(''),
+    roomName: text('room_name').notNull(),
+    /** Session type aliases as Ingresso shows them: "2D", "DUB", "LEG", "XD", "IMAX"… */
+    types: text('types', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+    price: real('price'),
+    checkoutUrl: text('checkout_url'),
+  },
+  (t) => [
+    index('showtime_room_starts_idx').on(t.roomId, t.startsAt),
+    index('showtime_cinema_starts_idx').on(t.cinemaId, t.startsAt),
+    index('showtime_starts_idx').on(t.startsAt),
+    index('showtime_theater_starts_idx').on(t.theaterId, t.startsAt),
   ],
 )

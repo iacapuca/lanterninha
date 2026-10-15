@@ -1,5 +1,5 @@
 import { Await, Link, createFileRoute, stripSearchParams } from '@tanstack/react-router'
-import { getRoom, getRoomReviews, getRoomStats } from '~/functions/rooms.functions'
+import { getProgramme, getRoom, getRoomReviews, getRoomStats } from '~/functions/rooms.functions'
 import { CRITERIA, CRITERION_IDS, RATINGS, type RoomStats } from '~/lib/domain'
 import { formatRating, pluralize } from '~/lib/format'
 import { REVIEW_SORTS, ROOM_SEARCH_DEFAULTS, roomSearchSchema } from '~/lib/schemas'
@@ -7,6 +7,7 @@ import { Lanterns } from '~/components/lanterns'
 import { ReviewItem, ReviewListSkeleton } from '~/components/review-item'
 import { Ticket, ticketSerial } from '~/components/ticket'
 import { RoomFacts } from '~/components/room-facts'
+import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { Button } from '~/components/ui/button'
 
 const REVIEW_SORT_LABELS = { recent: 'Recentes', best: 'Melhores', worst: 'Piores' } as const
@@ -21,8 +22,9 @@ export const Route = createFileRoute('/rooms/$roomId/')({
   loader: async ({ params, deps }) => {
     const stats = getRoomStats({ data: { id: params.roomId } })
     const reviews = getRoomReviews({ data: { id: params.roomId, reviews: deps.reviews } })
+    const programme = getProgramme({ data: { roomId: params.roomId } })
     const room = await getRoom({ data: { id: params.roomId } })
-    return { room, stats, reviews }
+    return { room, stats, reviews, programme }
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {}
@@ -67,7 +69,7 @@ export const Route = createFileRoute('/rooms/$roomId/')({
 })
 
 function RoomPage() {
-  const { room, stats, reviews } = Route.useLoaderData()
+  const { room, stats, reviews, programme } = Route.useLoaderData()
   const search = Route.useSearch()
 
   return (
@@ -123,6 +125,10 @@ function RoomPage() {
           mine={room.facts.mine}
         />
       </Ticket>
+
+      <Await promise={programme} fallback={<ProgrammeSkeleton />}>
+        {(p) => <Programme linked={p.linked} today={p.today} showtimes={p.showtimes} />}
+      </Await>
 
       <div className="split">
         <section className="section">

@@ -3,11 +3,17 @@
   "name": "lanterninha",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "./src/server.ts",
   "observability": { "enabled": true },
   "vars": {
-    "SLOW_QUERY_MS": "0"
+    "SLOW_QUERY_MS": "0",
+    // Ingresso.com content API: our partnership id and how many theaters' sessions to refresh per run.
+    "INGRESSO_PARTNERSHIP": "lanterninha",
+    "INGRESSO_THEATER_BATCH": "15"
   },
+  // Ingresso.com sync (src/server/ingresso/sync.server.ts) is paused: Ingresso's CDN answers
+  // 403 to requests from Cloudflare. Re-enable with ["*/5 * * * *"] once they allow our traffic.
+  "triggers": { "crons": [] },
   "d1_databases": [
     {
       "binding": "DB",

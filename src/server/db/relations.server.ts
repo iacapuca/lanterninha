@@ -18,11 +18,21 @@ export const relations = defineRelations(schema, (r) => ({
   },
   cinema: {
     rooms: r.many.room(),
+    showtimes: r.many.showtime(),
+  },
+  film: {
+    showtimes: r.many.showtime(),
+  },
+  showtime: {
+    film: r.one.film({ from: r.showtime.filmId, to: r.film.id, optional: false }),
+    room: r.one.room({ from: r.showtime.roomId, to: r.room.id }),
+    cinema: r.one.cinema({ from: r.showtime.cinemaId, to: r.cinema.id, optional: false }),
   },
   room: {
     cinema: r.one.cinema({ from: r.room.cinemaId, to: r.cinema.id, optional: false }),
     reviews: r.many.review(),
     facts: r.many.roomFact(),
+    showtimes: r.many.showtime(),
   },
   roomFact: {
     room: r.one.room({ from: r.roomFact.roomId, to: r.room.id, optional: false }),

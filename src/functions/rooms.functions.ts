@@ -79,3 +79,11 @@ export const getUserProfile = createServerFn({ method: 'GET' })
 export const getCinemaLocations = createServerFn({ method: 'GET' }).handler(() =>
   store.getCinemaLocations(),
 )
+
+/** What's playing (from Ingresso.com), for a room or a cinema. Slow-ish: streamed. */
+export const getProgramme = createServerFn({ method: 'GET' })
+  .validator(z.union([z.object({ roomId: z.string().min(1).max(120) }), z.object({ cinemaId: z.string().min(1).max(120) })]))
+  .handler(async ({ data }) => {
+    await slowQuery()
+    return store.getProgramme(data)
+  })

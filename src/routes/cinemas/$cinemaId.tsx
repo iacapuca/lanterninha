@@ -1,11 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { getCinema } from '~/functions/rooms.functions'
+import { Await, createFileRoute } from '@tanstack/react-router'
+import { getCinema, getProgramme } from '~/functions/rooms.functions'
+import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { pluralize } from '~/lib/format'
 import { RoomCard } from '~/components/room-card'
 
 // SSR: full. Small, cacheable, SEO-relevant page — nothing worth deferring.
 export const Route = createFileRoute('/cinemas/$cinemaId')({
-  loader: ({ params }) => getCinema({ data: { id: params.cinemaId } }),
+  // The cinema is awaited (head, 404); its programme streams in.
+  loader: async ({ params }) => {
+    const programme = getProgramme({ data: { cinemaId: params.cinemaId } })
+    return { ...(await getCinema({ data: { id: params.cinemaId } })), programme }
+  },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
@@ -21,7 +26,7 @@ export const Route = createFileRoute('/cinemas/$cinemaId')({
 })
 
 function CinemaPage() {
-  const { cinema, rooms } = Route.useLoaderData()
+  const { cinema, rooms, programme } = Route.useLoaderData()
   const mapsUrl =
     cinema.lat != null && cinema.lng != null
       ? `https://www.openstreetmap.org/?mlat=${cinema.lat}&mlon=${cinema.lng}#map=17/${cinema.lat}/${cinema.lng}`
@@ -54,6 +59,9 @@ function CinemaPage() {
           </span>
         </p>
       </header>
+      <Await promise={programme} fallback={<ProgrammeSkeleton />}>
+        {(p) => <Programme linked={p.linked} today={p.today} showtimes={p.showtimes} showRoom />}
+      </Await>
       <section className="section">
         <h2>{pluralize(rooms.length, 'sala', 'salas')}</h2>
         <div className="grid">

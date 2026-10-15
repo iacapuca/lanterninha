@@ -78,8 +78,11 @@ export const ROOM_FACTS = {
 export type RoomFactField = keyof typeof ROOM_FACTS
 export const ROOM_FACT_FIELDS = Object.keys(ROOM_FACTS) as RoomFactField[]
 
-/** Where a room detail came from: detected in ANCINE's room name, or voted by the community. */
-export type FactSource = 'ancine' | 'community'
+/**
+ * Where a room detail came from, weakest to strongest: guessed from ANCINE's
+ * room name, seen in Ingresso.com's sessions/room names, or voted by the community.
+ */
+export type FactSource = 'ancine' | 'ingresso' | 'community'
 
 export type Cinema = {
   id: string
@@ -91,6 +94,7 @@ export type Cinema = {
   neighborhood: string
   address: string
   cep: string | null
+  cnpj: string | null
   website: string | null
   lat: number | null
   lng: number | null
