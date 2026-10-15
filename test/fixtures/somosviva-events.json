@@ -1,0 +1,66 @@
+{
+  "events": [
+    {
+      "id": "api_cca3fa97f9b747a492721f7f99bee8ae_event_0_1_c80f3899",
+      "title": "Paterno",
+      "start": "2026-10-15T19:00:00",
+      "end": "2026-10-15T21:30:00",
+      "location": "Apipucos",
+      "categories": ["Cinema"],
+      "status": "Público",
+      "description": "Sinopse:\nSérgio (Marco Ricca) é um arquiteto que se vê dividido entre manter o legado do pai e manter o contato com seu filho, que está prestes a se tornar adulto. Sérgio está envolvido em um grande projeto imobiliário em uma área popular do Recife, mas  precisa enfrentar a resistência dos moradores para alcançar seu objetivo.\n\nDireção:\nMarcelo Lordello\n\nElenco principal:\nMarco Ricca, Fabiana Pirro, Guga Patriota, Thomás Aquino, Nelson Baskerville\n\nDuração:\n110 minutos",
+      "imageDataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+      "cancelledAt": null,
+      "deletedAt": null,
+      "responsibleName": "(removed)"
+    },
+    {
+      "id": "api_84babc4c3e034d7f846f16194283d844_event_0_1_8becb96f",
+      "title": "Festival de Sabores",
+      "start": "2026-08-15T12:00:00",
+      "end": "2026-08-15T12:30:00",
+      "location": "Apipucos",
+      "categories": ["Feira"],
+      "status": "Público",
+      "description": "Uma grande oportunidade para expositores que desejam destacar seus produtos em um evento focado em gastronomia, cultura e experiência. O Festival de Sabores reúne um público qualificado, em busca de novidades, boa comida e momentos agradáveis. Garanta seu espaço, aumente suas vendas e fortaleça sua marca em um ambiente charmoso e bem frequentado. Vagas limitadas!",
+      "imageDataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+      "cancelledAt": null,
+      "deletedAt": null,
+      "responsibleName": "(removed)"
+    },
+    {
+      "id": "api_d012a776fbcf43ab89ccfdd8b977c7b9_event_0_1_032de55e",
+      "title": "Domingos na Jaqueira",
+      "start": "2026-08-16T12:00:00",
+      "end": "2026-08-16T12:30:00",
+      "location": "Jaqueira",
+      "categories": ["Feira"],
+      "status": "Público",
+      "description": "Todo domingo é dia de oportunidade no Parque da Jaqueira! Participe de uma feira consolidada, com grande fluxo de famílias e público qualificado, ideal para expositores que desejam aumentar as vendas e fortalecer sua marca. Um ambiente agradável, ao ar livre, perfeito para conectar seu negócio a novos clientes. Garanta seu espaço — vagas limitadas!",
+      "imageDataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+      "cancelledAt": null,
+      "deletedAt": null,
+      "responsibleName": "(removed)"
+    },
+    {
+      "id": "cancelled-1",
+      "title": "Paterno",
+      "start": "2026-10-15T19:00:00",
+      "end": "2026-10-15T21:30:00",
+      "location": "Apipucos",
+      "categories": ["Cinema"],
+      "status": "Público",
+      "description": "Sinopse:\nSérgio (Marco Ricca) é um arquiteto que se vê dividido entre manter o legado do pai e manter o contato com seu filho, que está prestes a se tornar adulto. Sérgio está envolvido em um grande projeto imobiliário em uma área popular do Recife, mas  precisa enfrentar a resistência dos moradores para alcançar seu objetivo.\n\nDireção:\nMarcelo Lordello\n\nElenco principal:\nMarco Ricca, Fabiana Pirro, Guga Patriota, Thomás Aquino, Nelson Baskerville\n\nDuração:\n110 minutos",
+      "imageDataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+      "cancelledAt": "2026-10-14T10:00:00",
+      "deletedAt": null,
+      "responsibleName": "(removed)"
+    }
+  ],
+  "pagination": {
+    "total": 4,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}

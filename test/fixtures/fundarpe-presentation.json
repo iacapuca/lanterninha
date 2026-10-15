@@ -1,0 +1,50 @@
+[
+  {
+    "CodApresentacao": 270,
+    "id_apresentacao": 291259,
+    "weekday": 7,
+    "day": "17/10",
+    "year": "2026",
+    "NomPeca": "Papaya",
+    "ds_local_evento": " Cinema São Luiz",
+    "ds_municipio": "RECIFE",
+    "sg_estado": "PE",
+    "NomSala": "Cinema São Luiz",
+    "HorSessao": "14:00",
+    "ValPeca": "10.0000",
+    "in_esgotado_automatico": 0,
+    "in_esgotado_manual": 0
+  },
+  {
+    "CodApresentacao": 271,
+    "id_apresentacao": 291258,
+    "weekday": 1,
+    "day": "18/10",
+    "year": "2026",
+    "NomPeca": "Papaya",
+    "ds_local_evento": " Cinema São Luiz",
+    "ds_municipio": "RECIFE",
+    "sg_estado": "PE",
+    "NomSala": "Cinema São Luiz",
+    "HorSessao": "14:00",
+    "ValPeca": "10.0000",
+    "in_esgotado_automatico": 0,
+    "in_esgotado_manual": 1
+  },
+  {
+    "CodApresentacao": 270,
+    "id_apresentacao": 999,
+    "weekday": 7,
+    "day": "17/10",
+    "year": "2026",
+    "NomPeca": "Papaya",
+    "ds_local_evento": " Theatro Cinema Guarany",
+    "ds_municipio": "RECIFE",
+    "sg_estado": "PE",
+    "NomSala": "Theatro Cinema Guarany LL",
+    "HorSessao": "14:00",
+    "ValPeca": "10.0000",
+    "in_esgotado_automatico": 0,
+    "in_esgotado_manual": 0
+  }
+]

@@ -25,7 +25,8 @@
     "format:check": "oxfmt --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "2.7.0-alpha.2",

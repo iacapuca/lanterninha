@@ -1,0 +1,18 @@
+# Weekly dependency updates, grouped into one PR (the project tracks latest versions).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Recife
+    open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns: ['*']
+    ignore:
+      # Pinned: from 0.33 satori compiles bundled HarfBuzz Wasm on import, which Workers refuse.
+      - dependency-name: satori
+        versions: ['>=0.33.0']

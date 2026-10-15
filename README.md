@@ -18,9 +18,21 @@ pnpm ancine:download && pnpm ancine:build
 pnpm db:migrate:local && pnpm db:import:local
 pnpm demo:build && pnpm db:demo:local   # optional: fictional reviews, local only
 pnpm dev          # http://localhost:3000 (SSR + local D1 run inside workerd)
-pnpm typecheck
+pnpm check        # typecheck + oxlint + oxfmt --check + vitest
 pnpm run deploy   # vite build && wrangler deploy
 ```
+
+### Tooling
+
+- **oxlint** (`pnpm lint`) and **oxfmt** (`pnpm format`): config in `.oxlintrc.json`
+  and `.oxfmtrc.json`. The one-off reformat is listed in `.git-blame-ignore-revs`.
+- **Vitest** (`pnpm test`): unit tests in `test/` for the provider parsers
+  (fixtures from real, sanitized responses), ANCINE name cleanup, time zones,
+  badges and schemas. `cloudflare:workers` is stubbed (`test/stubs/`).
+- **lefthook** git hooks: pre-commit formats and lints staged files; pre-push
+  runs typecheck and tests. Installed by `pnpm install` (`prepare`).
+- **Dependabot** (`.github/dependabot.yml`): one grouped PR of updates a week;
+  satori stays on 0.32 (see Share previews).
 
 ### Data
 

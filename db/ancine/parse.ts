@@ -190,7 +190,7 @@ export function titleCase(raw: string) {
 
 const COMPANY = /\b(LTDA|EIRELI|S\/A|S\.A\.|EMPRESA|CINEMATOGRAFI|ME$|EPP$)/
 
-function complexName(raw: string, rooms: Record<string, string>[]) {
+export function complexName(raw: string, rooms: Record<string, string>[]) {
   // Cinemark files complexes as "715 CINEMARK ELDORADO" (or "715 - CINEMARK DIAMOND").
   let name = raw.replace(/^\d+\s*(-\s*)?/, '').replace(/^[\s\-–.,]+/, '')
   // Some single-room complexes are filed under the company name; the room has the real name.

@@ -31,7 +31,7 @@ async function page(path: string): Promise<string> {
  * scanning with a string-aware bracket counter so a `]` inside a string can't
  * truncate the value. Throws when the literal is missing or unbalanced.
  */
-function extractJson(html: string, needle: string): unknown {
+export function extractJson(html: string, needle: string): unknown {
   const at = html.indexOf(needle)
   if (at < 0) throw new Error(`Velox: ${needle.trim()} not found`)
   let i = html.indexOf('=', at) + 1
