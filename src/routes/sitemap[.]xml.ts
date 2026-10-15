@@ -10,7 +10,7 @@ export const Route = createFileRoute('/sitemap.xml')({
         const { rooms, cinemas } = await getSitemapIds()
         const paths = [
           '/',
-          '/rooms',
+          '/cinemas',
           ...cinemas.map((id) => `/cinemas/${id}`),
           ...rooms.map((id) => `/rooms/${id}`),
         ]

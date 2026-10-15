@@ -122,7 +122,8 @@ export function titleCase(raw: string) {
 const COMPANY = /\b(LTDA|EIRELI|S\/A|S\.A\.|EMPRESA|CINEMATOGRAFI|ME$|EPP$)/
 
 function complexName(raw: string, rooms: Record<string, string>[]) {
-  let name = raw.replace(/^\d+\s+/, '') // Cinemark files complexes as "715 CINEMARK ELDORADO"
+  // Cinemark files complexes as "715 CINEMARK ELDORADO" (or "715 - CINEMARK DIAMOND").
+  let name = raw.replace(/^\d+\s*(-\s*)?/, '').replace(/^[\s\-–.,]+/, '')
   // Some single-room complexes are filed under the company name; the room has the real name.
   if (COMPANY.test(fold(name)) && rooms.length === 1) name = rooms[0]!['NOME_SALA']!
   name = name.replace(/^UCI (BRASIL|RIBEIRO)\s*-\s*/i, 'UCI ')
@@ -227,7 +228,9 @@ export function loadOpenComplexes(path = CSV_PATH): AncineComplex[] {
       const name = complexName(first['NOME_COMPLEXO']!, raw)
       const names = roomNames(raw, first['NOME_COMPLEXO']!)
       const number = first['NUMERO_ENDERECO_COMPLEXO']
-      const street = [first['ENDERECO_COMPLEXO'], number && !first['ENDERECO_COMPLEXO']!.includes(number) ? number : '']
+      // Some records end the street with a comma ("Av. Piracema,"), which doubled up with the number's.
+      const streetName = first['ENDERECO_COMPLEXO']!.trim().replace(/[\s,]+$/, '')
+      const street = [streetName, number && !streetName.includes(number) ? number : '']
         .filter(Boolean)
         .join(', ')
       const complement = first['COMPLEMENTO_COMPLEXO']

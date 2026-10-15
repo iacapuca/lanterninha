@@ -60,7 +60,7 @@ function CinemaPage() {
         </p>
       </header>
       <Await promise={programme} fallback={<ProgrammeSkeleton />}>
-        {(p) => <Programme linked={p.linked} today={p.today} showtimes={p.showtimes} showRoom />}
+        {(p) => <Programme {...p} showRoom />}
       </Await>
       <section className="section">
         <h2>{pluralize(rooms.length, 'sala', 'salas')}</h2>

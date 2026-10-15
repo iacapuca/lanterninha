@@ -2,7 +2,7 @@
 // `username` plugin); TypeScript keys must keep Better Auth's field names.
 import { sql } from 'drizzle-orm'
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import type { FactSource, Format, Projection, RoomFactField, Sound, State, Tag } from '~/lib/domain'
+import type { FactSource, Format, Projection, Provider, RoomFactField, Sound, State, Tag } from '~/lib/domain'
 
 const timestamps = {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -182,23 +182,29 @@ export const review = sqliteTable(
   ],
 )
 
-// ---------- Ingresso.com programme (synced by the scheduled job) ----------
+// ---------- Provider programme (synced by the scheduled job) ----------
 
-export const ingressoCity = sqliteTable('ingresso_city', {
+/** A city a provider sells in; Ingresso.com identifies them by id, Velox Tickets by URL name. */
+export const providerCity = sqliteTable('provider_city', {
+  /** Ingresso.com city id ("22") or Velox Tickets URL name ("Recife"). */
   id: text('id').primaryKey(),
+  provider: text('provider').$type<Provider>().notNull(),
   name: text('name').notNull(),
   state: text('state').$type<State>().notNull(),
   theatersSyncedAt: integer('theaters_synced_at', { mode: 'timestamp_ms' }),
 })
 
-/** An Ingresso.com theater, linked to the ANCINE cinema it corresponds to (if any). */
-export const ingressoTheater = sqliteTable(
-  'ingresso_theater',
+/** A provider's venue, linked to the ANCINE cinema it corresponds to (if any). */
+export const providerTheater = sqliteTable(
+  'provider_theater',
   {
+    /** Ingresso.com theater id ("1063") or "<city>:<placeCod>" ("Recife:RSV") for Velox Tickets. */
     id: text('id').primaryKey(),
+    provider: text('provider').$type<Provider>().notNull(),
     cityId: text('city_id').notNull(),
     cinemaId: text('cinema_id').references(() => cinema.id, { onDelete: 'set null' }),
-    matchedBy: text('matched_by').$type<'cnpj' | 'location'>(),
+    /** How the ANCINE cinema was matched: CNPJ, proximity, or shared name tokens. */
+    matchedBy: text('matched_by').$type<'cnpj' | 'location' | 'name'>(),
     name: text('name').notNull(),
     cnpj: text('cnpj'),
     lat: real('lat'),
@@ -207,11 +213,11 @@ export const ingressoTheater = sqliteTable(
     sessionsSyncedAt: integer('sessions_synced_at', { mode: 'timestamp_ms' }),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  (t) => [index('ingresso_theater_cinema_idx').on(t.cinemaId), index('ingresso_theater_synced_idx').on(t.sessionsSyncedAt)],
+  (t) => [index('provider_theater_cinema_idx').on(t.cinemaId), index('provider_theater_synced_idx').on(t.sessionsSyncedAt)],
 )
 
 export const film = sqliteTable('film', {
-  /** Ingresso.com event id (ANCINE film ids are often missing there). */
+  /** Ingresso.com event id, or "velox:<Velox event id>" (ANCINE film ids are often missing). */
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   originalTitle: text('original_title'),
@@ -228,11 +234,11 @@ export const film = sqliteTable('film', {
 export const showtime = sqliteTable(
   'showtime',
   {
-    /** Ingresso.com session id. */
+    /** Provider session id; Velox Tickets has none, so a "<theater>:<room>:<day>:<time>" key is used. */
     id: text('id').primaryKey(),
     theaterId: text('theater_id')
       .notNull()
-      .references(() => ingressoTheater.id, { onDelete: 'cascade' }),
+      .references(() => providerTheater.id, { onDelete: 'cascade' }),
     cinemaId: text('cinema_id')
       .notNull()
       .references(() => cinema.id, { onDelete: 'cascade' }),
@@ -241,11 +247,11 @@ export const showtime = sqliteTable(
       .notNull()
       .references(() => film.id, { onDelete: 'cascade' }),
     startsAt: integer('starts_at', { mode: 'timestamp_ms' }).notNull(),
-    /** The cinema's own calendar day and clock time ("2026-10-14", "22:15"), as Ingresso gives them. */
+    /** The cinema's own calendar day and clock time ("2026-10-14", "22:15"), as the provider gives them. */
     localDay: text('local_day').notNull().default(''),
     localTime: text('local_time').notNull().default(''),
     roomName: text('room_name').notNull(),
-    /** Session type aliases as Ingresso shows them: "2D", "DUB", "LEG", "XD", "IMAX"… */
+    /** Session type aliases as the provider shows them: "2D", "DUB", "LEG", "XD", "IMAX"… */
     types: text('types', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
     price: real('price'),
     checkoutUrl: text('checkout_url'),

@@ -80,9 +80,13 @@ export const ROOM_FACT_FIELDS = Object.keys(ROOM_FACTS) as RoomFactField[]
 
 /**
  * Where a room detail came from, weakest to strongest: guessed from ANCINE's
- * room name, seen in Ingresso.com's sessions/room names, or voted by the community.
+ * room name, seen in a ticketing portal's sessions/room names, or voted by the
+ * community.
  */
-export type FactSource = 'ancine' | 'ingresso' | 'community'
+export type FactSource = 'ancine' | 'ingresso' | 'velox' | 'community'
+
+/** The ticketing portals Lanterninha syncs showtimes from. */
+export type Provider = 'ingresso' | 'velox'
 
 export type Cinema = {
   id: string
@@ -140,6 +144,17 @@ export type RoomSummary = Room & {
   reviewCount: number
 }
 
+export type CinemaSummary = Cinema & {
+  roomCount: number
+  seats: number
+  /** Special formats among its rooms (IMAX, 4DX, VIP…). */
+  formats: Format[]
+  average: number | null
+  reviewCount: number
+  /** Has synced sessions from today on. */
+  showing: boolean
+}
+
 export type RoomStats = {
   histogram: Record<string, number> // "0.5" … "5" → count
   criteriaAverages: Record<Criterion, number | null>
@@ -181,4 +196,12 @@ export type BadgeId = (typeof BADGES)[number]['id']
 
 export function earnedBadges(stats: ContributionStats): BadgeId[] {
   return BADGES.filter((b) => b.earned(stats)).map((b) => b.id)
+}
+
+/** Brazil's time zones by state (Fernando de Noronha and western Amazonas aside). */
+export function timeZoneOf(state: State) {
+  if (state === 'AC') return 'America/Rio_Branco'
+  if (state === 'AM' || state === 'RR' || state === 'RO') return 'America/Manaus'
+  if (state === 'MT' || state === 'MS') return 'America/Cuiaba'
+  return 'America/Sao_Paulo'
 }

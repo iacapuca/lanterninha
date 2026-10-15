@@ -8,7 +8,7 @@ export function DefaultNotFound() {
       <h1>Essa sala está com as luzes apagadas</h1>
       <p className="muted">Não encontramos o que você procurava.</p>
       <Button asChild className="mt-3">
-        <Link to="/rooms">Explorar salas</Link>
+        <Link to="/cinemas">Explorar cinemas</Link>
       </Button>
     </section>
   )

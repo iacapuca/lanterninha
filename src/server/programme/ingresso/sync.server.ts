@@ -1,4 +1,4 @@
-// Incremental Ingresso.com sync, run by the Worker's cron trigger. Each run
+// Incremental Ingresso.com sync, run by the Worker's */5 cron trigger. Each run
 // stays well under the free plan's ~50 subrequests:
 //   1. weekly: refresh the city list (1 call)
 //   2. theaters for the CITY_BATCH least recently refreshed cities, matched to
@@ -6,75 +6,49 @@
 //   3. today's and tomorrow's sessions for the THEATER_BATCH stalest matched theaters
 //   4. drop sessions that already started more than 3 hours ago
 import { env } from 'cloudflare:workers'
-import { and, asc, eq, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
-import type { Format, FactSource, Projection, Sound, State } from '~/lib/domain'
-import { db } from '../db/client.server'
-import { cinema, film, ingressoCity, ingressoTheater, room, showtime } from '../db/schema.server'
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
+import type { Format, State } from '~/lib/domain'
+import { db } from '../../db/client.server'
+import { cinema, film, providerCity, providerTheater, room, showtime } from '../../db/schema.server'
 import { ingresso, type IngressoMovie, type IngressoTheater } from './api.server'
+import { canWrite, chunk, digits, distanceMeters, formatHint, nameTokens, projectionHint, roomNumber, soundHint } from '../shared.server'
 
 const DAY = 24 * 60 * 60 * 1000
-const CITY_BATCH = 5
-const theaterBatch = () => Number(env.INGRESSO_THEATER_BATCH) || 15
-
-// ---------- helpers ----------
-
-const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
-const digits = (s: string | null | undefined) => (s ?? '').replace(/\D/g, '')
-const GENERIC = new Set(['CINE', 'CINEMA', 'CINEMAS', 'SHOPPING', 'SALA', 'SALAS', 'DE', 'DO', 'DA', 'THE', 'MALL', 'CENTER', 'PLAZA'])
-const nameTokens = (s: string) => new Set(fold(s).split(/[^A-Z0-9]+/).filter((t) => t.length > 2 && !GENERIC.has(t)))
-
-function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const rad = (d: number) => (d * Math.PI) / 180
-  const h =
-    Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
-    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2
-  return 6_371_000 * 2 * Math.asin(Math.sqrt(h))
-}
-
-/** "Sala 03", "SALA 7 - IMAX", "Bradesco Prime 2" → 3, 7, 2. Ignores digits inside 4DX/3D. */
-export function roomNumber(name: string): number | null {
-  const cleaned = fold(name).replace(/(?<![A-Z0-9])(4DX|3D|2D|4D|4K|D-?BOX)(?![A-Z0-9])/g, ' ')
-  const match = cleaned.match(/(?:SALA\s*)?0*(\d{1,2})(?!\d)/)
-  return match ? Number(match[1]) : null
-}
-
-const FORMAT_HINTS: Array<[RegExp, Format]> = [
-  [/IMAX/, 'imax'],
-  [/4DX/, '4dx'],
-  [/D-?BOX/, 'dbox'],
-  [/MACRO|(?<![A-Z])XE(?![A-Z])/, 'macroxe'],
-  [/(?<![A-Z])XD(?![A-Z])/, 'xd'],
-  [/PRIME/, 'prime'],
-  [/VIP|PREMIER|PLATINUM|DELUX|LOUNGE/, 'vip'],
-]
-const formatHint = (text: string) => FORMAT_HINTS.find(([re]) => re.test(fold(text)))?.[1] ?? null
-const projectionHint = (text: string): Projection | null => (/LASER/.test(fold(text)) ? 'laser' : null)
-const soundHint = (text: string): Sound | null => (/ATMOS/.test(fold(text)) ? 'atmos' : null)
-
-/** Ingresso knows better than a guess from ANCINE's name, but never overrides the community. */
-const canWrite = (source: FactSource | null) => source == null || source === 'ancine'
+const CITY_BATCH = 3
+// Theater refresh costs ~4 subrequests per city (fetch, candidates, rooms, one
+// batch) and sessions ~3 per theater (two fetches, one batch); 3 + 12 keeps a
+// steady run under the free plan's 50-subrequest cap.
+const theaterBatch = () => Number(env.INGRESSO_THEATER_BATCH) || 12
 
 /** The São Paulo calendar day `offset` days from now, as YYYY-MM-DD. */
-const spDay = (offset: number) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(Date.now() + offset * DAY))
-
-/** D1 caps bound parameters per statement, so multi-row inserts are chunked. */
-function chunk<T>(rows: T[], size: number) {
-  return Array.from({ length: Math.ceil(rows.length / size) }, (_, i) => rows.slice(i * size, (i + 1) * size))
+function spDay(offset: number) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(Date.now() + offset * DAY))
 }
 
 // ---------- 1. cities ----------
 
 async function refreshCities() {
-  const [{ n }] = (await db.select({ n: sql<number>`count(*)` }).from(ingressoCity)) as [{ n: number }]
-  const [stale] = await db.select({ id: ingressoCity.id }).from(ingressoCity).where(lt(ingressoCity.theatersSyncedAt, new Date(Date.now() - 7 * DAY))).limit(1)
+  const [{ n }] = (await db
+    .select({ n: sql<number>`count(*)` })
+    .from(providerCity)
+    .where(eq(providerCity.provider, 'ingresso'))) as [{ n: number }]
+  const [stale] = await db
+    .select({ id: providerCity.id })
+    .from(providerCity)
+    .where(
+      and(
+        eq(providerCity.provider, 'ingresso'),
+        lt(providerCity.theatersSyncedAt, new Date(Date.now() - 7 * DAY)),
+      ),
+    )
+    .limit(1)
   if (n > 0 && !stale) return 0
   const cities = await ingresso.cities()
   for (const batch of chunk(cities, 20)) {
     await db
-      .insert(ingressoCity)
-      .values(batch.map((c) => ({ id: c.id, name: c.name, state: c.uf as State })))
-      .onConflictDoUpdate({ target: ingressoCity.id, set: { name: sql`excluded.name`, state: sql`excluded.state` } })
+      .insert(providerCity)
+      .values(batch.map((c) => ({ id: c.id, provider: 'ingresso' as const, name: c.name, state: c.uf as State })))
+      .onConflictDoUpdate({ target: providerCity.id, set: { name: sql`excluded.name`, state: sql`excluded.state` } })
   }
   return cities.length
 }
@@ -100,12 +74,11 @@ function matchCinema(t: IngressoTheater, candidates: Candidate[]): { cinemaId: s
 }
 
 /** Room names like "Sala 1 - LASER" or "Sala 5 - IMAX" fill in unknown room details. */
-async function applyRoomNameHints(cinemaId: string, rooms: IngressoTheater['rooms']) {
-  const ours = await db.select().from(room).where(eq(room.cinemaId, cinemaId))
+function roomHintStatements(ours: Array<typeof room.$inferSelect>, ingressoRooms: IngressoTheater['rooms']) {
   const byNumber = new Map(ours.map((r) => [roomNumber(r.name), r]))
-  for (const ingressoRoom of rooms) {
+  return ingressoRooms.flatMap((ingressoRoom) => {
     const target = ours.length === 1 ? ours[0] : byNumber.get(roomNumber(ingressoRoom.name))
-    if (!target) continue
+    if (!target) return []
     const set: Partial<typeof room.$inferInsert> = {}
     const f = formatHint(ingressoRoom.name)
     const p = projectionHint(ingressoRoom.name)
@@ -113,48 +86,52 @@ async function applyRoomNameHints(cinemaId: string, rooms: IngressoTheater['room
     if (f && canWrite(target.formatSource)) Object.assign(set, { format: f, formatSource: 'ingresso' })
     if (p && canWrite(target.projectionSource)) Object.assign(set, { projection: p, projectionSource: 'ingresso' })
     if (s && canWrite(target.soundSource)) Object.assign(set, { sound: s, soundSource: 'ingresso' })
-    if (Object.keys(set).length) await db.update(room).set(set).where(eq(room.id, target.id))
-  }
+    return Object.keys(set).length ? [db.update(room).set(set).where(eq(room.id, target.id))] : []
+  })
 }
 
 async function refreshTheaters() {
   const cities = await db
     .select()
-    .from(ingressoCity)
-    .where(or(isNull(ingressoCity.theatersSyncedAt), lt(ingressoCity.theatersSyncedAt, new Date(Date.now() - DAY))))
-    .orderBy(asc(ingressoCity.theatersSyncedAt))
+    .from(providerCity)
+    .where(
+      and(
+        eq(providerCity.provider, 'ingresso'),
+        or(isNull(providerCity.theatersSyncedAt), lt(providerCity.theatersSyncedAt, new Date(Date.now() - DAY))),
+      ),
+    )
+    .orderBy(asc(providerCity.theatersSyncedAt))
     .limit(CITY_BATCH)
 
   let matched = 0
   for (const city of cities) {
     const theaters = await ingresso.theatersInCity(city.id)
-    const candidates = theaters.length
-      ? await db
-          .select({ id: cinema.id, name: cinema.name, cnpj: cinema.cnpj, lat: cinema.lat, lng: cinema.lng })
-          .from(cinema)
-          .where(eq(cinema.state, city.state))
-      : []
+    if (!theaters.length) {
+      await db.update(providerCity).set({ theatersSyncedAt: new Date() }).where(eq(providerCity.id, city.id))
+      continue
+    }
+    const candidates = await db
+      .select({ id: cinema.id, name: cinema.name, cnpj: cinema.cnpj, lat: cinema.lat, lng: cinema.lng })
+      .from(cinema)
+      .where(eq(cinema.state, city.state))
 
+    // One batch per city — upserts, coordinate fixes, room hints and the
+    // watermark together keep the subrequest count flat in the city's size.
+    type Statement = Parameters<typeof db.batch>[0][number]
+    const statements: Statement[] = []
+    const hints: Array<{ cinemaId: string; rooms: IngressoTheater['rooms'] }> = []
     for (const t of theaters) {
       const match = matchCinema(t, candidates)
-      if (match) matched++
-      await db
-        .insert(ingressoTheater)
-        .values({
-          id: t.id,
-          cityId: city.id,
-          cinemaId: match?.cinemaId ?? null,
-          matchedBy: match?.matchedBy ?? null,
-          name: t.name,
-          cnpj: digits(t.cnpj) || null,
-          lat: t.geolocation?.lat ?? null,
-          lng: t.geolocation?.lng ?? null,
-          siteUrl: t.siteURL ?? null,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: ingressoTheater.id,
-          set: {
+      if (match) {
+        matched++
+        hints.push({ cinemaId: match.cinemaId, rooms: t.rooms })
+      }
+      statements.push(
+        db
+          .insert(providerTheater)
+          .values({
+            id: t.id,
+            provider: 'ingresso',
             cityId: city.id,
             cinemaId: match?.cinemaId ?? null,
             matchedBy: match?.matchedBy ?? null,
@@ -164,20 +141,42 @@ async function refreshTheaters() {
             lng: t.geolocation?.lng ?? null,
             siteUrl: t.siteURL ?? null,
             updatedAt: new Date(),
-          },
-        })
-      if (match) {
-        await applyRoomNameHints(match.cinemaId, t.rooms)
-        // Ingresso's coordinates are exact; prefer them over city centroids and geocoding.
-        if (t.geolocation) {
-          await db
+          })
+          .onConflictDoUpdate({
+            target: providerTheater.id,
+            set: {
+              cityId: city.id,
+              cinemaId: match?.cinemaId ?? null,
+              matchedBy: match?.matchedBy ?? null,
+              name: t.name,
+              cnpj: digits(t.cnpj) || null,
+              lat: t.geolocation?.lat ?? null,
+              lng: t.geolocation?.lng ?? null,
+              siteUrl: t.siteURL ?? null,
+              updatedAt: new Date(),
+            },
+          }),
+      )
+      // Ingresso's coordinates are exact; prefer them over city centroids and geocoding.
+      if (match && t.geolocation) {
+        statements.push(
+          db
             .update(cinema)
             .set({ lat: t.geolocation.lat, lng: t.geolocation.lng, geoPrecision: 'address' })
-            .where(eq(cinema.id, match.cinemaId))
-        }
+            .where(eq(cinema.id, match.cinemaId)),
+        )
       }
     }
-    await db.update(ingressoCity).set({ theatersSyncedAt: new Date() }).where(eq(ingressoCity.id, city.id))
+    // Room-name hints need each matched cinema's rooms; one select covers the lot.
+    if (hints.length) {
+      const roomsByCinema = new Map<string, Array<typeof room.$inferSelect>>()
+      for (const r of await db.select().from(room).where(inArray(room.cinemaId, hints.map((h) => h.cinemaId)))) {
+        roomsByCinema.set(r.cinemaId, [...(roomsByCinema.get(r.cinemaId) ?? []), r])
+      }
+      for (const h of hints) statements.push(...roomHintStatements(roomsByCinema.get(h.cinemaId) ?? [], h.rooms))
+    }
+    statements.push(db.update(providerCity).set({ theatersSyncedAt: new Date() }).where(eq(providerCity.id, city.id)))
+    await db.batch(statements as [Statement, ...Statement[]])
   }
   return { cities: cities.length, matched }
 }
@@ -188,7 +187,7 @@ function posterOf(m: IngressoMovie) {
   return (m.images.find((i) => /poster/i.test(i.type ?? '')) ?? m.images[0])?.url ?? null
 }
 
-async function refreshSessions(theater: typeof ingressoTheater.$inferSelect) {
+async function refreshSessions(theater: typeof providerTheater.$inferSelect) {
   const cinemaId = theater.cinemaId!
   const ours = await db.select().from(room).where(eq(room.cinemaId, cinemaId))
   const byNumber = new Map(ours.map((r) => [roomNumber(r.name), r]))
@@ -265,7 +264,7 @@ async function refreshSessions(theater: typeof ingressoTheater.$inferSelect) {
     ),
     db.delete(showtime).where(and(eq(showtime.theaterId, theater.id), gte(showtime.startsAt, from))),
     ...chunk(rows, 7).map((batch) => db.insert(showtime).values(batch).onConflictDoNothing()),
-    db.update(ingressoTheater).set({ sessionsSyncedAt: new Date() }).where(eq(ingressoTheater.id, theater.id)),
+    db.update(providerTheater).set({ sessionsSyncedAt: new Date() }).where(eq(providerTheater.id, theater.id)),
   ]
   await db.batch(statements as [(typeof statements)[number], ...(typeof statements)[number][]])
 
@@ -291,14 +290,15 @@ async function refreshSessions(theater: typeof ingressoTheater.$inferSelect) {
 async function refreshStaleSessions() {
   const stale = await db
     .select()
-    .from(ingressoTheater)
+    .from(providerTheater)
     .where(
       and(
-        isNotNull(ingressoTheater.cinemaId),
-        or(isNull(ingressoTheater.sessionsSyncedAt), lt(ingressoTheater.sessionsSyncedAt, new Date(Date.now() - 2 * 60 * 60 * 1000))),
+        eq(providerTheater.provider, 'ingresso'),
+        isNotNull(providerTheater.cinemaId),
+        or(isNull(providerTheater.sessionsSyncedAt), lt(providerTheater.sessionsSyncedAt, new Date(Date.now() - 2 * 60 * 60 * 1000))),
       ),
     )
-    .orderBy(asc(ingressoTheater.sessionsSyncedAt))
+    .orderBy(asc(providerTheater.sessionsSyncedAt))
     .limit(theaterBatch())
 
   let sessions = 0
@@ -310,7 +310,7 @@ async function refreshStaleSessions() {
       failed++
       console.error(`ingresso: sessions for theater ${t.id} failed`, error)
       // Push it to the back of the queue so one bad theater can't block the rest.
-      await db.update(ingressoTheater).set({ sessionsSyncedAt: new Date() }).where(eq(ingressoTheater.id, t.id))
+      await db.update(providerTheater).set({ sessionsSyncedAt: new Date() }).where(eq(providerTheater.id, t.id))
     }
   }
   return { theaters: stale.length, sessions, failed }
@@ -331,7 +331,10 @@ async function step<T>(name: string, run: () => Promise<T>): Promise<T | { error
 export async function syncIngresso() {
   const cities = await step('cities', refreshCities)
   const theaters = await step('theaters', refreshTheaters)
-  const sessions = await step('sessions', refreshStaleSessions)
+  // A bootstrapping run (fresh city list) already spends its subrequest
+  // budget; sessions start on the next tick.
+  const bootstrapped = typeof cities === 'number' && cities > 0
+  const sessions = bootstrapped ? { theaters: 0, sessions: 0, failed: 0 } : await step('sessions', refreshStaleSessions)
   await step('cleanup', async () => {
     await db.delete(showtime).where(lt(showtime.startsAt, new Date(Date.now() - 3 * 60 * 60 * 1000)))
     // Films nobody is showing anymore.
@@ -341,4 +344,3 @@ export async function syncIngresso() {
   console.log('ingresso sync', JSON.stringify(summary))
   return summary
 }
-

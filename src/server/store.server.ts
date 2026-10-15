@@ -2,6 +2,7 @@
 // behind Start's import protection: importing it from client code fails the build.
 import { and, asc, count, desc, eq, getColumns, gte, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type {
+  CinemaSummary,
   ContributionStats,
   Criterion,
   Review,
@@ -12,10 +13,10 @@ import type {
   State,
   Tag,
 } from '~/lib/domain'
-import { CRITERION_IDS, RATINGS } from '~/lib/domain'
+import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
 import type { ExploreSearch, NewReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, review, room, roomFact } from './db/schema.server'
+import { cinema, review, room, roomFact, showtime } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -67,50 +68,96 @@ function selectSummaries(where?: SQL) {
 type SummaryRow = Awaited<ReturnType<typeof selectSummaries>>[number]
 const toSummary = (r: SummaryRow): RoomSummary => ({ ...r, average: round1(r.average) })
 
-export async function searchRooms(filters: ExploreSearch) {
+const escapeLike = (q: string) => `%${fold(q).replace(/[\\%_]/g, '\\$&')}%`
+
+// ---------- Cinema search (Explorar) ----------
+
+const cinemaStats = db
+  .select({
+    cinemaId: room.cinemaId,
+    average: sql<number>`avg(${review.rating})`.as('average'),
+    reviewCount: sql<number>`count(*)`.as('review_count'),
+    lastReviewAt: sql<number>`max(${review.createdAt})`.as('last_review_at'),
+  })
+  .from(review)
+  .innerJoin(room, eq(review.roomId, room.id))
+  .groupBy(room.cinemaId)
+  .as('cinema_stats')
+
+const cinemaRooms = db
+  .select({
+    cinemaId: room.cinemaId,
+    roomCount: sql<number>`count(*)`.as('room_count'),
+    seats: sql<number>`sum(${room.seats})`.as('seats'),
+    formats: sql<string | null>`group_concat(distinct ${room.format})`.as('formats'),
+  })
+  .from(room)
+  .groupBy(room.cinemaId)
+  .as('cinema_rooms')
+
+const cinemaReviewCount = sql<number>`coalesce(${cinemaStats.reviewCount}, 0)`
+
+export async function searchCinemas(filters: ExploreSearch) {
   const conditions: SQL[] = []
   if (filters.state) conditions.push(eq(cinema.state, filters.state))
   if (filters.city) conditions.push(eq(cinema.city, filters.city))
-  if (filters.format) conditions.push(eq(room.format, filters.format))
+  if (filters.format) {
+    conditions.push(sql`exists (select 1 from ${room} where ${room.cinemaId} = ${cinema.id} and ${room.format} = ${filters.format})`)
+  }
   if (filters.q) {
-    const pattern = `%${fold(filters.q).replace(/[\\%_]/g, '\\$&')}%`
-    conditions.push(sql`${room.searchText} LIKE ${pattern} ESCAPE '\\'`)
+    // A room's search text already folds in its cinema's name, chain, neighbourhood and city.
+    conditions.push(
+      sql`exists (select 1 from ${room} where ${room.cinemaId} = ${cinema.id} and ${room.searchText} LIKE ${escapeLike(filters.q)} ESCAPE '\\')`,
+    )
   }
   const where = and(...conditions)
 
-  const [{ total }] = (await db
-    .select({ total: count() })
-    .from(room)
-    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
-    .where(where)) as [{ total: number }]
-
+  const [{ total }] = (await db.select({ total: count() }).from(cinema).where(where)) as [{ total: number }]
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const page = Math.min(filters.page, pageCount)
   const order = {
-    rating: [desc(sql`coalesce(${roomStats.average}, 0)`), desc(reviewCountOrZero)],
-    reviews: [desc(reviewCountOrZero), asc(cinema.name)],
-    recent: [desc(sql`coalesce(${roomStats.lastReviewAt}, 0)`)],
-    name: [asc(cinema.name), asc(room.name)],
+    rating: [desc(sql`coalesce(${cinemaStats.average}, 0)`), desc(cinemaReviewCount), desc(cinemaRooms.roomCount)],
+    reviews: [desc(cinemaReviewCount), asc(cinema.name)],
+    recent: [desc(sql`coalesce(${cinemaStats.lastReviewAt}, 0)`), asc(cinema.name)],
+    name: [asc(cinema.name)],
   }[filters.sort]
 
-  const rows = await selectSummaries(where)
+  const rows = await db
+    .select({
+      ...getColumns(cinema),
+      roomCount: sql<number>`coalesce(${cinemaRooms.roomCount}, 0)`,
+      seats: sql<number>`coalesce(${cinemaRooms.seats}, 0)`,
+      formats: cinemaRooms.formats,
+      average: cinemaStats.average,
+      reviewCount: cinemaReviewCount,
+      showing: sql<number>`exists (select 1 from ${showtime} where ${showtime.cinemaId} = ${cinema.id} and ${showtime.startsAt} >= ${Date.now() - 20 * 60 * 1000})`,
+    })
+    .from(cinema)
+    .leftJoin(cinemaRooms, eq(cinemaRooms.cinemaId, cinema.id))
+    .leftJoin(cinemaStats, eq(cinemaStats.cinemaId, cinema.id))
+    .where(where)
     .orderBy(...order)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
 
-  return { rooms: rows.map(toSummary), total, page, pageCount }
+  const cinemas: CinemaSummary[] = rows.map((r) => ({
+    ...r,
+    // Special formats only ("Padrão" says nothing on a card), in the canonical order.
+    formats: FORMAT_IDS.filter((f) => f !== 'standard' && r.formats?.split(',').includes(f)),
+    average: round1(r.average),
+    showing: Boolean(r.showing),
+  }))
+  return { cinemas, total, page, pageCount }
 }
 
-/** Cities with rooms, busiest first; all of a state's cities, or the top 60 nationwide. */
+/** Every city with a cinema (or just one state's), busiest first. */
 export async function listCities(state?: State) {
   return db
-    .select({ city: cinema.city, state: cinema.state, rooms: count(room.id) })
-    .from(room)
-    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .select({ city: cinema.city, state: cinema.state, cinemas: count() })
+    .from(cinema)
     .where(state ? eq(cinema.state, state) : undefined)
     .groupBy(cinema.city, cinema.state)
-    .orderBy(desc(count(room.id)), asc(cinema.city))
-    .limit(state ? 1000 : 60)
+    .orderBy(desc(count()), asc(cinema.city))
 }
 
 export async function getRoom(id: string) {
@@ -444,7 +491,7 @@ export async function getUserIdByUsername(username: string) {
   return found?.id ?? null
 }
 
-// ---------- Programme (Ingresso.com showtimes) ----------
+// ---------- Programme (synced provider showtimes) ----------
 
 /** Upcoming showtimes for a room or a whole cinema, with their films. */
 export async function getProgramme(target: { roomId: string } | { cinemaId: string }) {
@@ -453,13 +500,16 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
     'cinemaId' in target
       ? target.cinemaId
       : (await db.query.room.findFirst({ where: { id: target.roomId }, columns: { cinemaId: true } }))?.cinemaId
-  const linked = cinemaId
-    ? Boolean(await db.query.ingressoTheater.findFirst({ where: { cinemaId }, columns: { id: true } }))
-    : false
+  const theaters = cinemaId
+    ? await db.query.providerTheater.findMany({ where: { cinemaId }, columns: { provider: true } })
+    : []
+  const linked = theaters.length > 0
+  /** Who the sessions come from, for the credit line ("via Velox Tickets"). */
+  const providers = [...new Set(theaters.map((t) => t.provider))]
   const state = cinemaId ? (await db.query.cinema.findFirst({ where: { id: cinemaId }, columns: { state: true } }))?.state : null
   // "Today" in the cinema's own time zone, so late-night lists don't call tomorrow "today".
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: timeZoneOf(state ?? 'SP') }).format(new Date())
-  if (!linked) return { linked, today, showtimes: [] }
+  if (!linked) return { linked, providers, today, showtimes: [] }
 
   const showtimes = await db.query.showtime.findMany({
     // Keep sessions that started up to 20 minutes ago (trailers are still on).
@@ -472,13 +522,5 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
       room: { columns: { id: true, name: true } },
     },
   })
-  return { linked, today, showtimes }
-}
-
-/** Brazil's time zones by state (Fernando de Noronha and western Amazonas aside). */
-function timeZoneOf(state: State) {
-  if (state === 'AC') return 'America/Rio_Branco'
-  if (state === 'AM' || state === 'RR' || state === 'RO') return 'America/Manaus'
-  if (state === 'MT' || state === 'MS') return 'America/Cuiaba'
-  return 'America/Sao_Paulo'
+  return { linked, providers, today, showtimes }
 }

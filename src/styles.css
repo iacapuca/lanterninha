@@ -157,6 +157,7 @@ textarea { resize: vertical; }
 /* Explore */
 .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 18px; }
 .filters .field:not(.field-grow) { flex: 0 1 160px; }
+.filters .field.field-city { flex: 0 1 240px; }
 .active-filters { margin: -6px 0 18px; font-size: .9rem; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 32px; }
 
@@ -278,6 +279,7 @@ p.form-errors { padding-left: 0; }
 .ticket .badge { border-color: #2b1a1033; color: var(--ink-soft); }
 .ticket .badge-imax, .ticket .badge-xd, .ticket .badge-macroxe { color: #8a4b00; border-color: #8a4b0055; background: #ffb54733; }
 .ticket .badge-street { color: var(--ticket-red); border-color: #a8231b55; }
+.ticket .badge-showing { color: var(--paper); background: var(--ticket-red); border-color: var(--ticket-red); }
 .ticket .tags li { background: #2b1a1012; color: var(--ink); }
 .ticket .avatar { background: var(--ticket-red); color: var(--paper); }
 

@@ -96,7 +96,7 @@ function SiteHeader() {
           lanterninha
         </Link>
         <nav className="site-nav">
-          <Link to="/rooms" activeProps={{ className: 'active' }}>
+          <Link to="/cinemas" activeProps={{ className: 'active' }}>
             Explorar
           </Link>
           <Link to="/nearby" activeProps={{ className: 'active' }}>

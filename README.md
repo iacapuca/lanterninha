@@ -15,6 +15,7 @@ pnpm install
 cp .dev.vars.example .dev.vars   # BETTER_AUTH_SECRET, SLOW_QUERY_MS
 pnpm ancine:download && pnpm ancine:build
 pnpm db:migrate:local && pnpm db:import:local
+pnpm demo:build && pnpm db:demo:local   # optional: fictional reviews, local only
 pnpm dev          # http://localhost:3000 (SSR + local D1 run inside workerd)
 pnpm typecheck
 pnpm run deploy   # vite build && wrangler deploy
@@ -31,8 +32,8 @@ and, for capitals, OpenStreetMap Nominatim (© OpenStreetMap contributors, ODbL)
 ```sh
 pnpm ancine:download      # fetch the latest CSV into db/ancine/ (git-ignored)
 pnpm ancine:geocode       # address-level coordinates for capitals (cached in db/geo/geocode-cache.json)
-pnpm ancine:build         # write db/ancine/import.sql + db/demo/seed.sql
-pnpm db:import:remote     # upsert venues and demo reviews into D1 (idempotent)
+pnpm ancine:build         # write db/ancine/import.sql
+pnpm db:import:remote     # upsert venues into D1 (idempotent)
 ```
 
 The import upserts by ANCINE registration number:
@@ -42,8 +43,9 @@ The import upserts by ANCINE registration number:
 - **Community votes survive re-imports.**
 - **Closed rooms are removed,** unless they have reviews.
 
-Demo reviews (`db/demo/`) are fictional and placed on real rooms in 18 well-known
-venues. Demo users have no credentials.
+Demo reviews (`db/demo/`, `pnpm demo:build && pnpm db:demo:local`) are fictional,
+placed on real rooms in 18 well-known venues, and for local development only:
+production holds real reviews only. Demo users have no credentials.
 
 ### Database
 
@@ -57,41 +59,94 @@ drizzle-kit 1.x writes one folder per migration, but Wrangler applies flat
 `migrations/`. Review generated SQL before applying it. D1 ignores
 `PRAGMA foreign_keys=OFF` inside migrations, so table rebuilds that drizzle-kit
 emits can cascade. `20261014233241_ancine_and_room_facts` is hand-edited for
-that reason.
+that reason, and `20261015020303_narrow_marvel_boy` (the ingresso_* tables
+becoming provider-neutral) adds a `DEFAULT 'ingresso'` backfill so existing
+rows survive the rename.
 
-### What's playing (Ingresso.com)
+### What's playing (provider syncs)
 
-A Worker cron (`*/5 * * * *`, `src/server.ts` → `src/server/ingresso/sync.server.ts`)
-syncs Ingresso.com's content API into D1 incrementally, staying under the free
-plan's subrequest limit:
+Two Worker crons (`src/server.ts` → `src/server/programme/*/sync.server.ts`)
+sync Ingresso.com and Velox Tickets into D1 incrementally. Each provider runs on
+its own schedule — Ingresso every 5 minutes, Velox every 30 — so a single
+invocation stays under the free plan's ~50-subrequest limit. Shared matching
+and room-hint helpers live in `src/server/programme/shared.server.ts`, and both
+write the same provider-neutral tables (`provider_city`, `provider_theater`,
+`film`, `showtime`; film ids are namespaced, e.g. `velox:90050`).
+
+**Ingresso.com** (content API, `partnership=lanterninha`):
 
 1. **Cities:** the city list is refreshed weekly.
-2. **Cinemas:** 5 cities' cinemas are refreshed per run. Each cinema is matched
+2. **Cinemas:** 3 cities' cinemas are refreshed per run. Each cinema is matched
    to an ANCINE cinema by **CNPJ**, falling back to within 600 m with a shared
    word in the name. A match brings exact coordinates and room-name hints
    ("Sala 1 - LASER", "Sala 7 - IMAX").
-3. **Sessions:** today's and tomorrow's sessions are refreshed for 15 matched
+3. **Sessions:** today's and tomorrow's sessions are refreshed for 12 matched
    cinemas per run (`INGRESSO_THEATER_BATCH`). Sessions link to our rooms by
    room number. Session types fill in formats: a room that runs IMAX sessions
    is IMAX.
 4. **Cleanup:** sessions that started more than 3 hours ago are deleted.
 
-Room details resolve **community vote > Ingresso.com > ANCINE name**. Rooms and
-cinemas show an "Em cartaz" programme linking to Ingresso.com's checkout, with
-times in the cinema's own time zone.
+Ingresso's API sits behind Akamai, which answers `403` to requests egressing
+from **production** Workers — the very calls pass from a home connection and,
+confusingly, from `wrangler dev --remote` previews, so only a deployed cron
+reveals the block (that's how the sync got re-enabled by mistake and then
+re-diagnosed from the live logs). A day with nothing left to sell answers
+`204`, which the client reads as the API's `null`. Matching was verified
+locally: 19 of 22 cinemas matched, with real sessions on room and cinema
+pages.
 
-**Status: paused.** Ingresso.com's CDN answers `403` to requests from
-Cloudflare Workers (the same requests work from a home connection), so the cron
-is disabled in `wrangler.jsonc` until Ingresso allows our traffic. Everything
-else is in place. Matching was verified locally: 19 of 22 cinemas matched,
-with real sessions on room and cinema pages.
+**Workaround (opt-in):** `INGRESSO_PROXY_URL` routes every call through a
+relay outside Cloudflare — Akamai only blocks the Worker egress, not the
+relay's. Any small always-on host works; a one-file
+[Deno Deploy](https://dash.deno.com) (free) is enough:
+
+```ts
+// proxy.ts — deploy with: deno deploy proxy.ts
+const UPSTREAM = 'https://api-content.ingresso.com'
+Deno.serve(async (req) => {
+  const { pathname, search } = new URL(req.url)
+  const res = await fetch(UPSTREAM + pathname + search, {
+    headers: { 'User-Agent': req.headers.get('user-agent') ?? '', Accept: 'application/json' },
+  })
+  return new Response(res.body, { status: res.status, headers: { 'content-type': 'application/json' } })
+})
+```
+
+Then set `"INGRESSO_PROXY_URL": "https://<your-relay>.deno.dev/v0"` in
+`wrangler.jsonc` and deploy. Until then the cron keeps retrying (and failing)
+harmlessly, so the sync lights up the moment the relay is configured.
 
 Requests identify themselves (`partnership=lanterninha` and a User-Agent).
 Ingresso's integration guide says partners should register at
-relacionamento@ingresso.com.
+relacionamento@ingresso.com — a registered partnership may also lift the block
+at the source.
+
+**Velox Tickets** (veloxtickets.com, the ticketing portal behind Moviemax,
+Centerplex and other regional chains) has no public API, but its ASP.NET portal
+server-renders the full data model into every page as JavaScript literals.
+Those literals are the de-facto API, and `src/server/programme/velox/api.server.ts`
+extracts them:
+
+1. **Cities:** the home page embeds every city Velox sells in.
+2. **Venues:** `/Portal/Locais/Cinema/<city>` embeds the city's venues; each is
+   matched to an ANCINE cinema by city + shared name tokens (Velox publishes
+   neither CNPJ nor coordinates; the district field disambiguates multi-venue
+   places like Fundação Joaquim Nabuco).
+3. **Sessions:** one venue-day page per day covers every movie, room and
+   session, including filters (LEG/DUB/3D…), sold-out flags and checkout URLs —
+   three pages per venue per run (`VELOX_THEATER_BATCH` venues, three days).
+4. **Cleanup:** shared with Ingresso's.
+
+`node --experimental-strip-types scripts/velox-smoke.ts` prints what the Velox
+client currently extracts from the live portal, so upstream template changes
+surface quickly.
+
+Room details resolve **community vote > provider > ANCINE name**. Rooms and
+cinemas show an "Em cartaz" programme linking to the provider's checkout, with
+times in the cinema's own time zone.
 
 The dev server runs TanStack's default entry, so it has no `scheduled` handler.
-To test the cron locally, use `pnpm build && pnpm exec vite preview`, then
+To test the crons locally, use `pnpm build && pnpm exec vite preview`, then
 `POST /cdn-cgi/local/explorer/api/local/scheduled?worker=lanterninha`.
 
 ### Community details and badges

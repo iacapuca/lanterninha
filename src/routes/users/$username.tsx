@@ -73,7 +73,7 @@ function ProfilePage() {
           <h2>Nenhuma sessão no diário ainda</h2>
           <p className="muted">As avaliações de @{profile.username} vão aparecer aqui.</p>
           <Button asChild>
-            <Link to="/rooms">Encontrar uma sala</Link>
+            <Link to="/cinemas">Encontrar uma sala</Link>
           </Button>
         </section>
       ) : (

@@ -26,10 +26,10 @@ export const getRecentReviews = createServerFn({ method: 'GET' })
     return store.getRecentReviews(data.limit)
   })
 
-export const searchRooms = createServerFn({ method: 'GET' })
+export const searchCinemas = createServerFn({ method: 'GET' })
   .validator(exploreSearchSchema)
   .handler(async ({ data }) => {
-    const [result, cities] = await Promise.all([store.searchRooms(data), store.listCities(data.state)])
+    const [result, cities] = await Promise.all([store.searchCinemas(data), store.listCities(data.state)])
     return { ...result, cities }
   })
 

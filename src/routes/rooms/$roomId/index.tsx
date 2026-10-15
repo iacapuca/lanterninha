@@ -127,7 +127,7 @@ function RoomPage() {
       </Ticket>
 
       <Await promise={programme} fallback={<ProgrammeSkeleton />}>
-        {(p) => <Programme linked={p.linked} today={p.today} showtimes={p.showtimes} />}
+        {(p) => <Programme {...p} />}
       </Await>
 
       <div className="split">

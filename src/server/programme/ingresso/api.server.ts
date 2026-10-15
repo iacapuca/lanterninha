@@ -7,15 +7,25 @@ import { z } from 'zod'
 const BASE = 'https://api-content.ingresso.com/v0'
 const USER_AGENT = 'lanterninha/1.0 (+https://lanterninha.plpbs.workers.dev)'
 
+// Ingresso's CDN is Akamai, which answers 403 to production Worker egress —
+// while the same calls pass from a home connection and even from `wrangler dev
+// --remote` previews. The workaround is to relay /v0/* through any host outside
+// Cloudflare (a one-file Deno Deploy or Fly.io service does); point
+// INGRESSO_PROXY_URL at it to route every call through the relay.
+const base = () => (env.INGRESSO_PROXY_URL || BASE).replace(/\/+$/, '')
+
 const partnership = () => env.INGRESSO_PARTNERSHIP || 'lanterninha'
 
 async function get<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${base()}${path}`, {
     headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
     // A hung upstream call must not eat the whole cron run.
     signal: AbortSignal.timeout(20_000),
   })
   if (!res.ok) throw new Error(`Ingresso ${res.status} for ${path}`)
+  // 204 No Content: the theater/day simply has nothing to sell (common late
+  // at night) — the API's equivalent of its `null` response, not an error.
+  if (res.status === 204) return schema.parse(null)
   return schema.parse(await res.json())
 }
 

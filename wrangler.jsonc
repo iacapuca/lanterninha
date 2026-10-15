@@ -9,11 +9,18 @@
     "SLOW_QUERY_MS": "0",
     // Ingresso.com content API: our partnership id and how many theaters' sessions to refresh per run.
     "INGRESSO_PARTNERSHIP": "lanterninha",
-    "INGRESSO_THEATER_BATCH": "15"
+    "INGRESSO_THEATER_BATCH": "12",
+    // Set to a relay's URL that forwards /v0/* to api-content.ingresso.com verbatim
+    // (see README) to get around Akamai's 403 to Worker egress. Empty = call directly.
+    "INGRESSO_PROXY_URL": "",
+    // Velox Tickets: how many venues' sessions to refresh per */30 run.
+    "VELOX_THEATER_BATCH": "6"
   },
-  // Ingresso.com sync (src/server/ingresso/sync.server.ts) is paused: Ingresso's CDN answers
-  // 403 to requests from Cloudflare. Re-enable with ["*/5 * * * *"] once they allow our traffic.
-  "triggers": { "crons": [] },
+  // Provider syncs (src/server/programme/*/sync.server.ts), one invocation each so a single
+  // run stays well under the free plan's ~50 subrequests. Ingresso's API is behind Akamai,
+  // which 403s production Worker egress — set INGRESSO_PROXY_URL to a relay (see README) or
+  // wait for their partner program; the cron retries harmlessly meanwhile.
+  "triggers": { "crons": ["*/5 * * * *", "*/30 * * * *"] },
   "d1_databases": [
     {
       "binding": "DB",

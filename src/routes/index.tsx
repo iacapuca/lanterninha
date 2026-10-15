@@ -35,7 +35,7 @@ function HomePage() {
           Tela, som, poltrona e limpeza avaliados por quem estava lá. Descubra a melhor fileira, fuja
           do ar-condicionado polar e conte como foi a sua sessão.
         </p>
-        <form method="get" action="/rooms" className="hero-search">
+        <form method="get" action="/cinemas" className="hero-search">
           <label htmlFor="hero-q" className="sr-only">
             Buscar sala ou cinema
           </label>
@@ -47,7 +47,7 @@ function HomePage() {
         <Ticket
           className="totals-ticket"
           stub={
-            <Link to="/rooms" className="totals-stub">
+            <Link to="/cinemas" className="totals-stub">
               <span className="ticket-kicker">Sua vez</span>
               <strong>Avaliar uma sala →</strong>
             </Link>
@@ -81,15 +81,22 @@ function HomePage() {
       <section className="section">
         <div className="section-head">
           <h2>As salas mais bem avaliadas</h2>
-          <Link to="/rooms" search={{ sort: 'rating' }}>
-            Ver todas →
+          <Link to="/cinemas" search={{ sort: 'rating' }}>
+            Explorar cinemas →
           </Link>
         </div>
-        <div className="grid">
-          {topRooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
-          ))}
-        </div>
+        {topRooms.length === 0 ? (
+          <p className="muted">
+            Nenhuma sala tem avaliações suficientes ainda.{' '}
+            <Link to="/cinemas">Encontre a sua e seja a primeira pessoa a avaliar →</Link>
+          </p>
+        ) : (
+          <div className="grid">
+            {topRooms.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="split">
@@ -98,13 +105,17 @@ function HomePage() {
             <h2>Saindo da sessão agora</h2>
           </div>
           <Await promise={recentReviews} fallback={<ReviewListSkeleton />}>
-            {(reviews) => (
-              <div className="stack">
-                {reviews.map((review) => (
-                  <ReviewItem key={review.id} review={review} />
-                ))}
-              </div>
-            )}
+            {(reviews) =>
+              reviews.length === 0 ? (
+                <p className="muted">Nenhuma avaliação por enquanto. A primeira pode ser a sua.</p>
+              ) : (
+                <div className="stack">
+                  {reviews.map((review) => (
+                    <ReviewItem key={review.id} review={review} />
+                  ))}
+                </div>
+              )
+            }
           </Await>
         </section>
 
@@ -113,7 +124,7 @@ function HomePage() {
           <ul className="chip-list">
             {CITIES.map((city) => (
               <li key={city}>
-                <Link to="/rooms" search={{ city }} className="chip">
+                <Link to="/cinemas" search={{ city }} className="chip">
                   {city}
                 </Link>
               </li>
@@ -123,7 +134,7 @@ function HomePage() {
           <ul className="chip-list">
             {FORMAT_IDS.map((format) => (
               <li key={format}>
-                <Link to="/rooms" search={{ format }} className="chip">
+                <Link to="/cinemas" search={{ format }} className="chip">
                   {FORMATS[format]}
                 </Link>
               </li>
