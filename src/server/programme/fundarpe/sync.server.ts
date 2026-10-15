@@ -20,11 +20,21 @@ const SCAN_ABOVE = 25
 const SITE_URL = 'https://ingressosfundarpe.com.br/'
 
 /** Venue name in the API → our ANCINE cinema. Only cinema-only venues: the API can't tell films from shows. */
-const VENUES = [{ match: /cinema s[aã]o luiz/i, theaterId: 'fundarpe:sao-luiz', cinemaId: 'cinema-sao-luiz', name: 'Cinema São Luiz' }] as const
+const VENUES = [
+  {
+    match: /cinema s[aã]o luiz/i,
+    theaterId: 'fundarpe:sao-luiz',
+    cinemaId: 'cinema-sao-luiz',
+    name: 'Cinema São Luiz',
+  },
+] as const
 
 const filmIdOf = (code: number) => `fundarpe:${ID_BASE}:${code}`
 /** Title compared without case, accents or punctuation: "Naza." and "NAZA" match. */
-const titleKey = (title: string) => fold(title).toLowerCase().replace(/[^a-z0-9]+/g, '')
+const titleKey = (title: string) =>
+  fold(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
 
 /**
  * Fundarpe publishes no posters or runtimes, but the same films usually play
@@ -66,7 +76,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 /** The newest event code we already know a São Luiz film by. */
 async function newestKnownCode() {
   const [row] = await db
-    .select({ code: sql<number | null>`max(cast(substr(${film.id}, ${`fundarpe:${ID_BASE}:`.length + 1}) as integer))` })
+    .select({
+      code: sql<number | null>`max(cast(substr(${film.id}, ${`fundarpe:${ID_BASE}:`.length + 1}) as integer))`,
+    })
     .from(film)
     .where(like(film.id, `fundarpe:${ID_BASE}:%`))
   return Math.max(CODE_FLOOR + SCAN_BELOW, row?.code ?? 0)
@@ -102,7 +114,9 @@ async function syncVenue(venue: (typeof VENUES)[number]) {
   const films = new Map<string, typeof film.$inferInsert>()
   const rows: Array<typeof showtime.$inferInsert> = []
   for (let code = Math.max(CODE_FLOOR, newest - SCAN_BELOW); code <= newest + SCAN_ABOVE; code++) {
-    const sessions = (await presentations(ID_BASE, code)).filter((p) => venue.match.test(p.ds_local_evento ?? p.NomSala ?? ''))
+    const sessions = (await presentations(ID_BASE, code)).filter((p) =>
+      venue.match.test(p.ds_local_evento ?? p.NomSala ?? ''),
+    )
     await sleep(250)
     for (const p of sessions) {
       const day = isoDay(p.day, p.year)
@@ -154,7 +168,11 @@ async function syncVenue(venue: (typeof VENUES)[number]) {
     db.update(providerTheater).set({ sessionsSyncedAt: now }).where(eq(providerTheater.id, venue.theaterId)),
   ]
   await db.batch(statements as [Statement, ...Statement[]])
-  return { films: films.size, sessions: rows.length, scanned: `${Math.max(CODE_FLOOR, newest - SCAN_BELOW)}–${newest + SCAN_ABOVE}` }
+  return {
+    films: films.size,
+    sessions: rows.length,
+    scanned: `${Math.max(CODE_FLOOR, newest - SCAN_BELOW)}–${newest + SCAN_ABOVE}`,
+  }
 }
 
 export async function syncFundarpe() {

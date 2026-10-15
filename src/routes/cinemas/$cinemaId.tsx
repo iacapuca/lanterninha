@@ -33,7 +33,13 @@ export const Route = createFileRoute('/cinemas/$cinemaId')({
   component: CinemaPage,
 })
 
-function cinemaDescription({ cinema, rooms }: { cinema: { name: string; city: string; state: string }; rooms: unknown[] }) {
+function cinemaDescription({
+  cinema,
+  rooms,
+}: {
+  cinema: { name: string; city: string; state: string }
+  rooms: unknown[]
+}) {
   return `${pluralize(rooms.length, 'sala', 'salas')} do ${cinema.name} em ${cinema.city}/${cinema.state}, avaliadas pela comunidade.`
 }
 
@@ -66,8 +72,12 @@ function CinemaPage() {
             </a>
           )}
           <span className="muted">
-            {pluralize(rooms.reduce((n, r) => n + r.seats, 0), 'lugar', 'lugares')} ·{' '}
-            {pluralize(wheelchairSeats, 'lugar', 'lugares')} p/ cadeirantes
+            {pluralize(
+              rooms.reduce((n, r) => n + r.seats, 0),
+              'lugar',
+              'lugares',
+            )}{' '}
+            · {pluralize(wheelchairSeats, 'lugar', 'lugares')} p/ cadeirantes
           </span>
         </p>
       </header>

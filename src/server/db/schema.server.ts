@@ -98,7 +98,11 @@ export const cinema = sqliteTable(
     lng: real('lng'),
     geoPrecision: text('geo_precision').$type<'address' | 'city'>(),
   },
-  (t) => [index('cinema_city_idx').on(t.city), index('cinema_state_idx').on(t.state), index('cinema_cnpj_idx').on(t.cnpj)],
+  (t) => [
+    index('cinema_city_idx').on(t.city),
+    index('cinema_state_idx').on(t.state),
+    index('cinema_cnpj_idx').on(t.cnpj),
+  ],
 )
 
 export const room = sqliteTable(
@@ -169,7 +173,10 @@ export const review = sqliteTable(
     row: text('row'),
     film: text('film'),
     body: text('body').notNull(),
-    tags: text('tags', { mode: 'json' }).$type<Tag[]>().notNull().default(sql`'[]'`),
+    tags: text('tags', { mode: 'json' })
+      .$type<Tag[]>()
+      .notNull()
+      .default(sql`'[]'`),
     /** São Paulo calendar day (YYYY-MM-DD), used for the one-review-per-room-per-day rule. */
     day: text('day').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -213,7 +220,10 @@ export const providerTheater = sqliteTable(
     sessionsSyncedAt: integer('sessions_synced_at', { mode: 'timestamp_ms' }),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  (t) => [index('provider_theater_cinema_idx').on(t.cinemaId), index('provider_theater_synced_idx').on(t.sessionsSyncedAt)],
+  (t) => [
+    index('provider_theater_cinema_idx').on(t.cinemaId),
+    index('provider_theater_synced_idx').on(t.sessionsSyncedAt),
+  ],
 )
 
 export const film = sqliteTable('film', {
@@ -225,7 +235,10 @@ export const film = sqliteTable('film', {
   durationMinutes: integer('duration_minutes'),
   contentRating: text('content_rating'),
   releaseYear: integer('release_year'),
-  genres: text('genres', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  genres: text('genres', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
   posterUrl: text('poster_url'),
   siteUrl: text('site_url'),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
@@ -264,7 +277,10 @@ export const showtime = sqliteTable(
     localTime: text('local_time').notNull().default(''),
     roomName: text('room_name').notNull(),
     /** Session type aliases as the provider shows them: "2D", "DUB", "LEG", "XD", "IMAX"… */
-    types: text('types', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+    types: text('types', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
     price: real('price'),
     checkoutUrl: text('checkout_url'),
   },

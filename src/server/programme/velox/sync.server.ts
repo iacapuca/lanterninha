@@ -16,7 +16,18 @@ import { timeZoneOf } from '~/lib/domain'
 import { db } from '../../db/client.server'
 import { cinema, film, providerCity, providerTheater, room, showtime } from '../../db/schema.server'
 import { velox, type VeloxCine } from './api.server'
-import { canWrite, chunk, formatHint, localDay, mapLimit, nameTokens, projectionHint, roomNumber, soundHint, zonedTime } from '../shared.server'
+import {
+  canWrite,
+  chunk,
+  formatHint,
+  localDay,
+  mapLimit,
+  nameTokens,
+  projectionHint,
+  roomNumber,
+  soundHint,
+  zonedTime,
+} from '../shared.server'
 
 const DAY = 24 * 60 * 60 * 1000
 // Venue refresh costs ~3 subrequests per city (fetch, candidates, one batch)
@@ -54,7 +65,12 @@ async function refreshCities() {
     .limit(1)
   if (n > 0 && !stale) return 0
   const rows = (await velox.cities()).flatMap((s) =>
-    s.cities.map((c) => ({ id: c.cityNameNorm, provider: 'velox' as const, name: c.cityName, state: s.stateCod as State })),
+    s.cities.map((c) => ({
+      id: c.cityNameNorm,
+      provider: 'velox' as const,
+      name: c.cityName,
+      state: s.stateCod as State,
+    })),
   )
   for (const batch of chunk(rows, 20)) {
     await db

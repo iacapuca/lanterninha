@@ -20,7 +20,11 @@ import { cinema, filmPoster, review, room, roomFact, showtime } from './db/schem
 
 const PAGE_SIZE = 9
 
-const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
 const round1 = (n: number | null) => (n == null ? null : Math.round(n * 10) / 10)
 
 function average(xs: number[]) {
@@ -102,7 +106,9 @@ export async function searchCinemas(filters: ExploreSearch) {
   if (filters.state) conditions.push(eq(cinema.state, filters.state))
   if (filters.city) conditions.push(eq(cinema.city, filters.city))
   if (filters.format) {
-    conditions.push(sql`exists (select 1 from ${room} where ${room.cinemaId} = ${cinema.id} and ${room.format} = ${filters.format})`)
+    conditions.push(
+      sql`exists (select 1 from ${room} where ${room.cinemaId} = ${cinema.id} and ${room.format} = ${filters.format})`,
+    )
   }
   if (filters.q) {
     // A room's search text already folds in its cinema's name, chain, neighbourhood and city.
@@ -162,7 +168,6 @@ export async function cinemaShareSummary(id: string) {
   return row ? toCinemaSummary(row) : null
 }
 
-
 /** Every city with a cinema (or just one state's), busiest first. */
 export async function listCities(state?: State) {
   return db
@@ -179,9 +184,7 @@ export async function getRoom(id: string) {
 }
 
 export async function getTopRooms(limit: number) {
-  const rows = await selectSummaries(gte(roomStats.reviewCount, 4))
-    .orderBy(desc(roomStats.average))
-    .limit(limit)
+  const rows = await selectSummaries(gte(roomStats.reviewCount, 4)).orderBy(desc(roomStats.average)).limit(limit)
   return rows.map(toSummary)
 }
 
@@ -471,7 +474,10 @@ export async function getRoomFactVotes(roomId: string, userId?: string) {
   const mine = userId
     ? await db.query.roomFact.findMany({ where: { roomId, userId }, columns: { field: true, value: true } })
     : []
-  return { votes, mine: Object.fromEntries(mine.map((m) => [m.field, m.value])) as Partial<Record<RoomFactField, string>> }
+  return {
+    votes,
+    mine: Object.fromEntries(mine.map((m) => [m.field, m.value])) as Partial<Record<RoomFactField, string>>,
+  }
 }
 
 /**
@@ -561,7 +567,9 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
   const linked = theaters.length > 0
   /** Who the sessions come from, for the credit line ("via Velox Tickets"). */
   const providers = [...new Set(theaters.map((t) => t.provider))]
-  const state = cinemaId ? (await db.query.cinema.findFirst({ where: { id: cinemaId }, columns: { state: true } }))?.state : null
+  const state = cinemaId
+    ? (await db.query.cinema.findFirst({ where: { id: cinemaId }, columns: { state: true } }))?.state
+    : null
   // "Today" in the cinema's own time zone, so late-night lists don't call tomorrow "today".
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: timeZoneOf(state ?? 'SP') }).format(new Date())
   if (!linked) return { linked, providers, today, showtimes: [] }
@@ -573,7 +581,9 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
     limit: 400,
     columns: { id: true, localDay: true, localTime: true, roomName: true, types: true, price: true, checkoutUrl: true },
     with: {
-      film: { columns: { id: true, title: true, posterUrl: true, durationMinutes: true, contentRating: true, genres: true } },
+      film: {
+        columns: { id: true, title: true, posterUrl: true, durationMinutes: true, contentRating: true, genres: true },
+      },
       room: { columns: { id: true, name: true } },
     },
   })

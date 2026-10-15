@@ -11,7 +11,17 @@ import type { Format, State } from '~/lib/domain'
 import { db } from '../../db/client.server'
 import { cinema, film, providerCity, providerTheater, room, showtime } from '../../db/schema.server'
 import { ingresso, type IngressoMovie, type IngressoTheater } from './api.server'
-import { canWrite, chunk, digits, distanceMeters, formatHint, nameTokens, projectionHint, roomNumber, soundHint } from '../shared.server'
+import {
+  canWrite,
+  chunk,
+  digits,
+  distanceMeters,
+  formatHint,
+  nameTokens,
+  projectionHint,
+  roomNumber,
+  soundHint,
+} from '../shared.server'
 
 const DAY = 24 * 60 * 60 * 1000
 const CITY_BATCH = 3
@@ -36,10 +46,7 @@ async function refreshCities() {
     .select({ id: providerCity.id })
     .from(providerCity)
     .where(
-      and(
-        eq(providerCity.provider, 'ingresso'),
-        lt(providerCity.theatersSyncedAt, new Date(Date.now() - 7 * DAY)),
-      ),
+      and(eq(providerCity.provider, 'ingresso'), lt(providerCity.theatersSyncedAt, new Date(Date.now() - 7 * DAY))),
     )
     .limit(1)
   if (n > 0 && !stale) return 0
@@ -57,13 +64,18 @@ async function refreshCities() {
 
 type Candidate = { id: string; name: string; cnpj: string | null; lat: number | null; lng: number | null }
 
-function matchCinema(t: IngressoTheater, candidates: Candidate[]): { cinemaId: string; matchedBy: 'cnpj' | 'location' } | null {
+function matchCinema(
+  t: IngressoTheater,
+  candidates: Candidate[],
+): { cinemaId: string; matchedBy: 'cnpj' | 'location' } | null {
   const here = t.geolocation
-  const near = (c: Candidate) => (here && c.lat != null && c.lng != null ? distanceMeters(here, { lat: c.lat, lng: c.lng }) : Infinity)
+  const near = (c: Candidate) =>
+    here && c.lat != null && c.lng != null ? distanceMeters(here, { lat: c.lat, lng: c.lng }) : Infinity
 
   // CNPJ first; if several complexes share it (one company, many venues), take the closest.
   const byCnpj = candidates.filter((c) => c.cnpj && c.cnpj === digits(t.cnpj)).sort((a, b) => near(a) - near(b))
-  if (byCnpj.length === 1 || (byCnpj.length > 1 && near(byCnpj[0]!) < 2_000)) return { cinemaId: byCnpj[0]!.id, matchedBy: 'cnpj' }
+  if (byCnpj.length === 1 || (byCnpj.length > 1 && near(byCnpj[0]!) < 2_000))
+    return { cinemaId: byCnpj[0]!.id, matchedBy: 'cnpj' }
 
   // Otherwise: within 600 m and sharing a meaningful word in the name.
   const tokens = nameTokens(t.name)
@@ -170,7 +182,15 @@ async function refreshTheaters() {
     // Room-name hints need each matched cinema's rooms; one select covers the lot.
     if (hints.length) {
       const roomsByCinema = new Map<string, Array<typeof room.$inferSelect>>()
-      for (const r of await db.select().from(room).where(inArray(room.cinemaId, hints.map((h) => h.cinemaId)))) {
+      for (const r of await db
+        .select()
+        .from(room)
+        .where(
+          inArray(
+            room.cinemaId,
+            hints.map((h) => h.cinemaId),
+          ),
+        )) {
         roomsByCinema.set(r.cinemaId, [...(roomsByCinema.get(r.cinemaId) ?? []), r])
       }
       for (const h of hints) statements.push(...roomHintStatements(roomsByCinema.get(h.cinemaId) ?? [], h.rooms))
@@ -219,7 +239,8 @@ async function refreshSessions(theater: typeof providerTheater.$inferSelect) {
         const roomName = s.room ?? r.name ?? ''
         const ourRoom = resolveRoom(roomName)
         const types = s.types.map((t) => t.alias || t.name)
-        if (ourRoom) typesByRoom.set(ourRoom.id, [...(typesByRoom.get(ourRoom.id) ?? []), ...s.types.map((t) => t.name)])
+        if (ourRoom)
+          typesByRoom.set(ourRoom.id, [...(typesByRoom.get(ourRoom.id) ?? []), ...s.types.map((t) => t.name)])
         rows.push({
           id: s.id,
           theaterId: theater.id,
@@ -295,7 +316,10 @@ async function refreshStaleSessions() {
       and(
         eq(providerTheater.provider, 'ingresso'),
         isNotNull(providerTheater.cinemaId),
-        or(isNull(providerTheater.sessionsSyncedAt), lt(providerTheater.sessionsSyncedAt, new Date(Date.now() - 2 * 60 * 60 * 1000))),
+        or(
+          isNull(providerTheater.sessionsSyncedAt),
+          lt(providerTheater.sessionsSyncedAt, new Date(Date.now() - 2 * 60 * 60 * 1000)),
+        ),
       ),
     )
     .orderBy(asc(providerTheater.sessionsSyncedAt))

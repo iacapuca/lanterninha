@@ -82,9 +82,7 @@ function ReviewPage() {
 
   const draftKey = `lanterninha:draft:${room.id}`
   const [draft, setDraft] = useState<Draft>(() =>
-    editing
-      ? { ...editing, row: editing.row ?? '', film: editing.film ?? '' }
-      : readDraft(draftKey),
+    editing ? { ...editing, row: editing.row ?? '', film: editing.film ?? '' } : readDraft(draftKey),
   )
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -208,9 +206,7 @@ function ReviewPage() {
                   type="button"
                   aria-pressed={on}
                   disabled={!on && draft.tags.length >= 5}
-                  onClick={() =>
-                    update({ tags: on ? draft.tags.filter((t) => t !== tag) : [...draft.tags, tag] })
-                  }
+                  onClick={() => update({ tags: on ? draft.tags.filter((t) => t !== tag) : [...draft.tags, tag] })}
                 >
                   {tag}
                 </button>
@@ -232,7 +228,9 @@ function ReviewPage() {
         <Button type="submit" disabled={submitting}>
           {submitting ? 'Salvando…' : editing ? 'Salvar alterações' : 'Publicar avaliação'}
         </Button>
-        <span className="muted">{editing ? 'A data da avaliação continua a mesma.' : 'Rascunho salvo neste navegador.'}</span>
+        <span className="muted">
+          {editing ? 'A data da avaliação continua a mesma.' : 'Rascunho salvo neste navegador.'}
+        </span>
       </div>
     </form>
   )

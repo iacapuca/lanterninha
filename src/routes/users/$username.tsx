@@ -40,9 +40,10 @@ function ProfilePage() {
           {profile.reviews.length > 0 && (
             <p className="muted">
               {pluralize(profile.reviews.length, 'sala avaliada', 'salas avaliadas')} em{' '}
-              {profile.cities.length > 3 ? pluralize(profile.cities.length, 'cidade', 'cidades') : profile.cities.join(', ')} · média{' '}
-              {formatRating(profile.average)}{' '}
-              <Lanterns rating={profile.average} size={14} />
+              {profile.cities.length > 3
+                ? pluralize(profile.cities.length, 'cidade', 'cidades')
+                : profile.cities.join(', ')}{' '}
+              · média {formatRating(profile.average)} <Lanterns rating={profile.average} size={14} />
             </p>
           )}
         </div>
@@ -59,12 +60,23 @@ function ProfilePage() {
         <ul className="badge-grid">
           {[...BADGES]
             .map((badge) => ({ badge, done: Math.min(profile.stats[badge.metric], badge.goal) }))
-            .sort((a, b) => Number(b.done >= b.badge.goal) - Number(a.done >= a.badge.goal) || b.done / b.badge.goal - a.done / a.badge.goal)
+            .sort(
+              (a, b) =>
+                Number(b.done >= b.badge.goal) - Number(a.done >= a.badge.goal) ||
+                b.done / b.badge.goal - a.done / a.badge.goal,
+            )
             .map(({ badge, done }) => {
               const earned = done >= badge.goal
               return (
                 <li key={badge.id} className={earned ? 'badge-stub earned' : 'badge-stub'}>
-                  <img className="badge-stub-art" src={badgeImage(badge.id)} alt="" width={112} height={112} loading="lazy" />
+                  <img
+                    className="badge-stub-art"
+                    src={badgeImage(badge.id)}
+                    alt=""
+                    width={112}
+                    height={112}
+                    loading="lazy"
+                  />
                   <strong>{badge.name}</strong>
                   <span className="badge-stub-hint">{badge.hint}</span>
                   {earned ? (

@@ -124,7 +124,11 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
           type: 'symbol',
           source: 'cinemas',
           filter: ['has', 'point_count'],
-          layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12, 'text-font': ['Noto Sans Bold'] },
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-size': 12,
+            'text-font': ['Noto Sans Bold'],
+          },
           paint: { 'text-color': '#1b1006' },
         })
         instance!.addLayer({
@@ -151,12 +155,23 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
           if (!feature) return
           const source = instance!.getSource('cinemas') as GeoJSONSource
           const zoom = await source.getClusterExpansionZoom(feature.properties.cluster_id)
-          instance!.easeTo({ center: (feature.geometry as unknown as { coordinates: [number, number] }).coordinates, zoom })
+          instance!.easeTo({
+            center: (feature.geometry as unknown as { coordinates: [number, number] }).coordinates,
+            zoom,
+          })
         })
         instance!.on('click', 'cinema', (e) => {
           const feature = e.features?.[0]
           if (!feature) return
-          const p = feature.properties as { id: string; name: string; place: string; rooms: number; average: number; reviews: number; approximate: boolean }
+          const p = feature.properties as {
+            id: string
+            name: string
+            place: string
+            rooms: number
+            average: number
+            reviews: number
+            approximate: boolean
+          }
           const html = `
             <a class="map-popup" href="/cinemas/${encodeURIComponent(p.id)}" data-cinema="${escapeHtml(p.id)}">
               <strong>${escapeHtml(p.name)}</strong>
@@ -169,10 +184,13 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
             .setHTML(html)
             .addTo(instance!)
           // Client-side navigation instead of a full page load.
-          popup.getElement().querySelector('a')?.addEventListener('click', (ev: MouseEvent) => {
-            ev.preventDefault()
-            void navigate({ to: '/cinemas/$cinemaId', params: { cinemaId: p.id } })
-          })
+          popup
+            .getElement()
+            .querySelector('a')
+            ?.addEventListener('click', (ev: MouseEvent) => {
+              ev.preventDefault()
+              void navigate({ to: '/cinemas/$cinemaId', params: { cinemaId: p.id } })
+            })
         })
         for (const layer of ['clusters', 'cinema']) {
           instance!.on('mouseenter', layer, () => (instance!.getCanvas().style.cursor = 'pointer'))

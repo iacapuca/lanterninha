@@ -40,7 +40,7 @@ function mulberry32(seed: number) {
 }
 
 const rand = mulberry32(20261014)
-const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)]!
+const pick = <T>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)]!
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 const q = (v: unknown) =>
   v == null ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`
@@ -58,8 +58,17 @@ const now = Date.UTC(2026, 9, 1)
 for (const u of USERNAMES) {
   lines.push(
     `INSERT OR IGNORE INTO user (id, name, email, email_verified, username, display_username, created_at, updated_at) VALUES (${[
-      `seed_${u}`, u, `${u}@demo.lanterninha.invalid`, 0, u, u, now, now,
-    ].map(q).join(', ')});`,
+      `seed_${u}`,
+      u,
+      `${u}@demo.lanterninha.invalid`,
+      0,
+      u,
+      u,
+      now,
+      now,
+    ]
+      .map(q)
+      .join(', ')});`,
   )
 }
 
@@ -94,12 +103,23 @@ for (const cinema of showcase) {
 
       lines.push(
         `INSERT OR IGNORE INTO review (id, room_id, user_id, rating, picture, sound, comfort, cleanliness, row, film, body, tags, day, created_at) VALUES (${[
-          `demo-${room.id}-${username}`, room.id, `seed_${username}`, rating,
-          criteria.picture, criteria.sound, criteria.comfort, criteria.cleanliness,
+          `demo-${room.id}-${username}`,
+          room.id,
+          `seed_${username}`,
+          rating,
+          criteria.picture,
+          criteria.sound,
+          criteria.comfort,
+          criteria.cleanliness,
           rand() > 0.3 ? String.fromCharCode(67 + Math.floor(rand() * 11)) : null,
-          rand() > 0.15 ? pick(FILMS) : null, pick(BODIES[band]), JSON.stringify([...tags]),
-          saoPauloDay.format(new Date(createdAt)), createdAt,
-        ].map(q).join(', ')});`,
+          rand() > 0.15 ? pick(FILMS) : null,
+          pick(BODIES[band]),
+          JSON.stringify([...tags]),
+          saoPauloDay.format(new Date(createdAt)),
+          createdAt,
+        ]
+          .map(q)
+          .join(', ')});`,
       )
       reviews++
     }

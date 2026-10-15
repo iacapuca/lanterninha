@@ -73,7 +73,9 @@ async function inkOnly(input: Buffer) {
 
   const out = Buffer.alloc(width * height * 4)
   for (let i = 0, o = 0; i < data.length; i += 3, o += 4) {
-    const r = data[i]!, g = data[i + 1]!, b = data[i + 2]!
+    const r = data[i]!,
+      g = data[i + 1]!,
+      b = data[i + 2]!
     // Ink shows up as darkness relative to the paper; ignore the faint vignette.
     const ink = Math.max(0, paperLum - lum(r, g, b) - 14) / Math.max(1, paperLum - 60)
     const a = Math.min(1, ink * 1.25)

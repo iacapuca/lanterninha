@@ -1,8 +1,8 @@
 {
   "name": "lanterninha",
   "private": true,
-  "type": "module",
   "description": "Avaliações colaborativas de salas de cinema do Brasil.",
+  "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
@@ -26,13 +26,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
-  },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.10.0",
-      "onFail": "download"
-    }
   },
   "dependencies": {
     "@resvg/resvg-wasm": "2.7.0-alpha.2",
@@ -72,5 +65,12 @@
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.0.4",
     "wrangler": "^4.151.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.10.0",
+      "onFail": "download"
+    }
   }
 }

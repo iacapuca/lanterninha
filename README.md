@@ -24,7 +24,7 @@ pnpm run deploy   # vite build && wrangler deploy
 
 ### Data
 
-Venues come from ANCINE's open data, *Salas de Exibição e Complexos Registrados*
+Venues come from ANCINE's open data, _Salas de Exibição e Complexos Registrados_
 (monthly, CC BY): every open complex and room in Brazil, with seats and
 accessibility. Coordinates come from municipality centroids
 ([kelvins/municipios-brasileiros](https://github.com/kelvins/municipios-brasileiros), MIT)
@@ -38,6 +38,7 @@ pnpm db:import:remote     # upsert venues into D1 (idempotent)
 ```
 
 The import upserts by ANCINE registration number:
+
 - **Friendly names:** "715 CINEMARK ELDORADO" becomes "Cinemark Eldorado", and
   "UCI RIBEIRO - S C R - 03" becomes "Sala 3".
 - **Formats** are filled in only when ANCINE's name says so (IMAX, XD, VIP…).
@@ -256,15 +257,15 @@ params are coerced to defaults, and defaults are stripped from URLs.
 
 ### SSR mode per route
 
-| Route | SSR | Why |
-| --- | --- | --- |
-| `/` | full + streaming | Top rooms are in the HTML; the recent-reviews feed streams in |
-| `/rooms` | full | Filterable, shareable, SEO-relevant listing |
-| `/rooms/$roomId` | full + streaming | Room is awaited (head, JSON-LD, 404); stats and reviews stream |
-| `/rooms/$roomId/review` | `data-only` | Auth and room lookup run on the server; the form restores a localStorage draft, so it renders on the client only |
-| `/nearby` | `false` | Built on the Geolocation API and has no SEO value |
-| `/cinemas/$id`, `/users/$username`, `/sign-in` | full | Small pages, nothing worth deferring |
-| `/sitemap.xml`, `/robots.txt` | server routes | Raw HTTP handlers |
+| Route                                          | SSR              | Why                                                                                                              |
+| ---------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `/`                                            | full + streaming | Top rooms are in the HTML; the recent-reviews feed streams in                                                    |
+| `/rooms`                                       | full             | Filterable, shareable, SEO-relevant listing                                                                      |
+| `/rooms/$roomId`                               | full + streaming | Room is awaited (head, JSON-LD, 404); stats and reviews stream                                                   |
+| `/rooms/$roomId/review`                        | `data-only`      | Auth and room lookup run on the server; the form restores a localStorage draft, so it renders on the client only |
+| `/nearby`                                      | `false`          | Built on the Geolocation API and has no SEO value                                                                |
+| `/cinemas/$id`, `/users/$username`, `/sign-in` | full             | Small pages, nothing worth deferring                                                                             |
+| `/sitemap.xml`, `/robots.txt`                  | server routes    | Raw HTTP handlers                                                                                                |
 
 Crawlers get fully resolved HTML; browsers get the shell first and the streamed
 sections afterwards.

@@ -32,8 +32,8 @@ function HomePage() {
           <em>Agora escolha a sala.</em>
         </h1>
         <p className="hero-lede">
-          Tela, som, poltrona e limpeza avaliados por quem estava lá. Descubra a melhor fileira, fuja
-          do ar-condicionado polar e conte como foi a sua sessão.
+          Tela, som, poltrona e limpeza avaliados por quem estava lá. Descubra a melhor fileira, fuja do ar-condicionado
+          polar e conte como foi a sua sessão.
         </p>
         <form method="get" action="/cinemas" className="hero-search">
           <label htmlFor="hero-q" className="sr-only">

@@ -16,8 +16,33 @@ export type Format = keyof typeof FORMATS
 export const FORMAT_IDS = Object.keys(FORMATS) as [Format, ...Format[]]
 
 export const STATES = [
-  'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA',
-  'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
+  'AC',
+  'AL',
+  'AM',
+  'AP',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MG',
+  'MS',
+  'MT',
+  'PA',
+  'PB',
+  'PE',
+  'PI',
+  'PR',
+  'RJ',
+  'RN',
+  'RO',
+  'RR',
+  'RS',
+  'SC',
+  'SE',
+  'SP',
+  'TO',
 ] as const
 export type State = (typeof STATES)[number]
 
@@ -192,11 +217,25 @@ export const BADGES = [
   { id: 'regular', name: 'Lanterninha de plantão', hint: 'Avalie 10 salas', metric: 'reviews', goal: 10 },
   { id: 'traveler', name: 'Cinéfilo viajante', hint: 'Avalie salas em 3 cidades', metric: 'cities', goal: 3 },
   { id: 'screen-spotter', name: 'Olho de tela', hint: 'Informe o tipo de tela de uma sala', metric: 'format', goal: 1 },
-  { id: 'screen-inspector', name: 'Fiscal de tela', hint: 'Informe o tipo de tela de 10 salas', metric: 'format', goal: 10 },
+  {
+    id: 'screen-inspector',
+    name: 'Fiscal de tela',
+    hint: 'Informe o tipo de tela de 10 salas',
+    metric: 'format',
+    goal: 10,
+  },
   { id: 'projectionist', name: 'Projecionista', hint: 'Informe a projeção de 5 salas', metric: 'projection', goal: 5 },
   { id: 'sharp-ears', name: 'Ouvido apurado', hint: 'Informe o som de 5 salas', metric: 'sound', goal: 5 },
-  { id: 'trailblazer', name: 'Abre-alas', hint: 'Seja a primeira pessoa a informar um detalhe de uma sala', metric: 'firstAnswers', goal: 1 },
-] as const satisfies ReadonlyArray<{ metric: keyof ContributionStats; goal: number } & Record<'id' | 'name' | 'hint', string>>
+  {
+    id: 'trailblazer',
+    name: 'Abre-alas',
+    hint: 'Seja a primeira pessoa a informar um detalhe de uma sala',
+    metric: 'firstAnswers',
+    goal: 1,
+  },
+] as const satisfies ReadonlyArray<
+  { metric: keyof ContributionStats; goal: number } & Record<'id' | 'name' | 'hint', string>
+>
 export type BadgeId = (typeof BADGES)[number]['id']
 
 export const badgeImage = (id: BadgeId) => `/badges/${id}.png`

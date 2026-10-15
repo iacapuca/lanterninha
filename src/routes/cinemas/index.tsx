@@ -189,7 +189,11 @@ function ExplorePage() {
 const ALL = '__all__'
 
 /** Accent- and case-insensitive, so "sao" finds São Paulo and "goiania" Goiânia. */
-const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 
 type CityOption = { city: string; state: State; cinemas: number }
 

@@ -33,7 +33,6 @@ export default {
       await syncSomosViva()
       // Every 3 h, same reasoning.
       await syncFundarpe()
-    }
-    else await syncIngresso()
+    } else await syncIngresso()
   },
 }

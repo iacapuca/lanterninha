@@ -10,7 +10,10 @@ console.log(`movies: ${movies.length} total, ${nowShowing.length} now showing`)
 console.log('first:', JSON.stringify(nowShowing[0], null, 1).slice(0, 400))
 
 const places = await velox.places('Recife')
-console.log('places:', places.map((p) => `${p.placeCod}=${p.placeName} @ ${p.placeUrl}`))
+console.log(
+  'places:',
+  places.map((p) => `${p.placeCod}=${p.placeName} @ ${p.placeUrl}`),
+)
 
 // One venue-day page carries the venue's whole programme.
 const [moviemax] = places.filter((p) => p.placeCod === 'RSV')
@@ -31,7 +34,9 @@ const path = carros.moviePage.split('/')
 const slug = path.at(-2)!
 const id = path.at(-1)!
 const { detail, dates, places: moviePlaces } = await velox.movie('Recife', slug, id)
-console.log(`movie ${detail.eventTitle}: duration=${detail.duration}min, genre=${detail.genre}, rating=${detail.typeRating}`)
+console.log(
+  `movie ${detail.eventTitle}: duration=${detail.duration}min, genre=${detail.genre}, rating=${detail.typeRating}`,
+)
 console.log('  dates:', dates.map((d) => d.date).join(', '))
 console.log('  places:', moviePlaces.map((p) => `${p.placeCod}=${p.placeName}`).join(', '))
 
@@ -47,4 +52,10 @@ for (const p of sessions) {
 
 const cities = await velox.cities()
 console.log('states on Velox:', cities.map((c) => c.stateCod).join(', '))
-console.log('PE cities:', cities.find((c) => c.stateCod === 'PE')?.cities.map((c) => c.cityName).join(', '))
+console.log(
+  'PE cities:',
+  cities
+    .find((c) => c.stateCod === 'PE')
+    ?.cities.map((c) => c.cityName)
+    .join(', '),
+)

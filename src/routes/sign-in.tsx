@@ -73,9 +73,7 @@ function SignInPage() {
 
     if (result.error) {
       return setError(
-        (result.error.code && AUTH_ERRORS[result.error.code]) ||
-          result.error.message ||
-          'Não foi possível entrar.',
+        (result.error.code && AUTH_ERRORS[result.error.code]) || result.error.message || 'Não foi possível entrar.',
       )
     }
     // The session cookie is set; re-run beforeLoad/loaders so the viewer updates everywhere.

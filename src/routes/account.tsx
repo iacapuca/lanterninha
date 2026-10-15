@@ -71,9 +71,7 @@ function AccountPage() {
 
       <section className="panel account-section account-danger">
         <h2>Excluir conta</h2>
-        <p className="muted">
-          Apaga sua conta, suas avaliações e suas respostas sobre as salas. Não dá para desfazer.
-        </p>
+        <p className="muted">Apaga sua conta, suas avaliações e suas respostas sobre as salas. Não dá para desfazer.</p>
         <DeleteAccount />
       </section>
 

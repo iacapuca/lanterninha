@@ -1,14 +1,37 @@
 // Fictional demo content: reviewer handles, films and review texts (pt-BR, user-facing).
 export const USERNAMES = [
-  'pipoqueira', 'fileira_g', 'cinefilo_da_augusta', 'lanterna_vermelha', 'cinema_novo_sempre',
-  'tela_grande', 'meia_entrada', 'sessao_das_dez', 'creditos_finais', 'joao_do_centro',
-  'mari_no_escurinho', 'nao_fala_no_cinema', 'super8', 'trilha_sonora', 'balde_de_pipoca',
+  'pipoqueira',
+  'fileira_g',
+  'cinefilo_da_augusta',
+  'lanterna_vermelha',
+  'cinema_novo_sempre',
+  'tela_grande',
+  'meia_entrada',
+  'sessao_das_dez',
+  'creditos_finais',
+  'joao_do_centro',
+  'mari_no_escurinho',
+  'nao_fala_no_cinema',
+  'super8',
+  'trilha_sonora',
+  'balde_de_pipoca',
 ]
 
 export const FILMS = [
-  'Ainda Estou Aqui', 'O Agente Secreto', 'Bacurau', 'Central do Brasil', 'Cidade de Deus',
-  'Duna: Parte Dois', 'Oppenheimer', 'Interestelar', 'Aquarius', 'Que Horas Ela Volta?',
-  'O Auto da Compadecida 2', 'Mad Max: Estrada da Fúria', 'Retrato de uma Jovem em Chamas', 'Marte Um',
+  'Ainda Estou Aqui',
+  'O Agente Secreto',
+  'Bacurau',
+  'Central do Brasil',
+  'Cidade de Deus',
+  'Duna: Parte Dois',
+  'Oppenheimer',
+  'Interestelar',
+  'Aquarius',
+  'Que Horas Ela Volta?',
+  'O Auto da Compadecida 2',
+  'Mad Max: Estrada da Fúria',
+  'Retrato de uma Jovem em Chamas',
+  'Marte Um',
 ]
 
 // Review bodies are user content, so they are pt-BR.
@@ -34,4 +57,3 @@ export const BODIES: Record<'high' | 'mid' | 'low', string[]> = {
     'Caro para o que entrega. A sala precisa de uma reforma urgente.',
   ],
 }
-

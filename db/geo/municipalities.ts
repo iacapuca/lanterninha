@@ -12,7 +12,13 @@ const municipalities = new Map<string, Municipality>(
     const state = stateByCode.get(m['codigo_uf']!)!['uf']!
     return [
       `${fold(m['nome']!)}|${state}`,
-      { name: m['nome']!, state, lat: Number(m['latitude']), lng: Number(m['longitude']), capital: m['capital'] === '1' },
+      {
+        name: m['nome']!,
+        state,
+        lat: Number(m['latitude']),
+        lng: Number(m['longitude']),
+        capital: m['capital'] === '1',
+      },
     ]
   }),
 )

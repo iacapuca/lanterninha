@@ -16,7 +16,11 @@ function ForgotPasswordPage() {
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const email = z.email().safeParse(String(new FormData(e.currentTarget).get('email') ?? '').trim().toLowerCase())
+    const email = z.email().safeParse(
+      String(new FormData(e.currentTarget).get('email') ?? '')
+        .trim()
+        .toLowerCase(),
+    )
     if (!email.success) return setError('Informe um e-mail válido.')
     setError(null)
     setPending(true)

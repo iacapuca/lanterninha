@@ -204,7 +204,10 @@ export const velox = {
 
   /** All states and cities Velox sells in, as embedded in the portal home page. */
   cities: async (): Promise<VeloxCity[]> => {
-    const states = parseAll(await extractJson(await page(`/Ingresso/Cinema/Recife`), 'MainData.Header.citiesData='), cityEntry)
+    const states = parseAll(
+      await extractJson(await page(`/Ingresso/Cinema/Recife`), 'MainData.Header.citiesData='),
+      cityEntry,
+    )
     return states.map((s) => ({ ...s, cities: s.cities.filter((c) => notPlaceholder(c.cityNameNorm)) }))
   },
 
@@ -223,7 +226,9 @@ export const velox = {
     return {
       detail: detail.parse(await extractJson(html, 'var eventDetailData =')),
       dates: parseAll(await extractJson(html, 'var eventDatesData ='), date),
-      places: parseAll(await extractJson(html, 'var eventPlacesData ='), place).filter((p) => notPlaceholder(p.placeName)),
+      places: parseAll(await extractJson(html, 'var eventPlacesData ='), place).filter((p) =>
+        notPlaceholder(p.placeName),
+      ),
     }
   },
 

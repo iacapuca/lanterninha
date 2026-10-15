@@ -43,7 +43,16 @@ function html(m: Message) {
 }
 
 const text = (m: Message) =>
-  [m.heading, '', ...m.paragraphs.flatMap((p) => [p, '']), `${m.action.label}: ${m.action.url}`, '', m.footnote, '', '— Lanterninha · lanterninha.review'].join('\n')
+  [
+    m.heading,
+    '',
+    ...m.paragraphs.flatMap((p) => [p, '']),
+    `${m.action.label}: ${m.action.url}`,
+    '',
+    m.footnote,
+    '',
+    '— Lanterninha · lanterninha.review',
+  ].join('\n')
 
 async function send(m: Message) {
   await env.EMAIL.send({ from: FROM, to: m.to, subject: m.subject, html: html(m), text: text(m) })

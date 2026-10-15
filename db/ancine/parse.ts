@@ -73,7 +73,11 @@ export function parseCsv(text: string, delimiter = ';'): Record<string, string>[
 // ---------- Names ----------
 
 export const fold = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim()
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .trim()
 
 export const slugify = (s: string) =>
   s
@@ -85,17 +89,84 @@ export const slugify = (s: string) =>
 
 const LOWER = new Set(['DE', 'DA', 'DO', 'DAS', 'DOS', 'E', 'EM', 'NA', 'NO', 'NAS', 'NOS', 'À', 'AO'])
 const UPPER = new Set([
-  'UCI', 'IMAX', 'XD', 'VIP', '4DX', '3D', 'CEU', 'CEUS', 'GNC', 'AFA', 'JK', 'BH', 'II', 'III', 'IV',
-  'CCBB', 'MIS', 'MAM', 'UFPE', 'UFMG', 'USP', 'UNB', 'UFRJ', 'UFF', 'SESI', 'SENAC', 'ABC', 'BR',
-  'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE',
-  'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
+  'UCI',
+  'IMAX',
+  'XD',
+  'VIP',
+  '4DX',
+  '3D',
+  'CEU',
+  'CEUS',
+  'GNC',
+  'AFA',
+  'JK',
+  'BH',
+  'II',
+  'III',
+  'IV',
+  'CCBB',
+  'MIS',
+  'MAM',
+  'UFPE',
+  'UFMG',
+  'USP',
+  'UNB',
+  'UFRJ',
+  'UFF',
+  'SESI',
+  'SENAC',
+  'ABC',
+  'BR',
+  'AC',
+  'AL',
+  'AM',
+  'AP',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MG',
+  'MS',
+  'MT',
+  'PA',
+  'PB',
+  'PE',
+  'PI',
+  'PR',
+  'RJ',
+  'RN',
+  'RO',
+  'RR',
+  'RS',
+  'SC',
+  'SE',
+  'SP',
+  'TO',
 ])
 const BRANDS: Record<string, string> = {
-  CINEPOLIS: 'Cinépolis', 'CINÉPOLIS': 'Cinépolis', CINEMARK: 'Cinemark', KINOPLEX: 'Kinoplex',
-  CINESYSTEM: 'Cinesystem', CINESESC: 'CineSesc', SESC: 'Sesc', SPCINE: 'Spcine', CINEFLIX: 'Cineflix',
-  MOVIECOM: 'Moviecom', CENTERPLEX: 'Centerplex', CINEART: 'Cineart', MOVIEMAX: 'Moviemax',
-  ARCOPLEX: 'Arcoplex', CINESHOW: 'Cineshow', MULTICINE: 'Multicine', UNIPLEX: 'Uniplex',
-  DELUX: 'DeLux', CINEMAIS: 'Cinemais', CINESERCLA: 'Cinesercla', MOBICINE: 'Mobicine',
+  CINEPOLIS: 'Cinépolis',
+  CINÉPOLIS: 'Cinépolis',
+  CINEMARK: 'Cinemark',
+  KINOPLEX: 'Kinoplex',
+  CINESYSTEM: 'Cinesystem',
+  CINESESC: 'CineSesc',
+  SESC: 'Sesc',
+  SPCINE: 'Spcine',
+  CINEFLIX: 'Cineflix',
+  MOVIECOM: 'Moviecom',
+  CENTERPLEX: 'Centerplex',
+  CINEART: 'Cineart',
+  MOVIEMAX: 'Moviemax',
+  ARCOPLEX: 'Arcoplex',
+  CINESHOW: 'Cineshow',
+  MULTICINE: 'Multicine',
+  UNIPLEX: 'Uniplex',
+  DELUX: 'DeLux',
+  CINEMAIS: 'Cinemais',
+  CINESERCLA: 'Cinesercla',
+  MOBICINE: 'Mobicine',
 }
 
 /** "CINE BELAS ARTES - SALA 1" → "Cine Belas Artes - Sala 1", keeping acronyms and brands. */
@@ -112,9 +183,7 @@ export function titleCase(raw: string) {
       // Codes like "4DX", "L4" or "BV.174" stay upper-case; numbers glued to words don't count.
       if (UPPER.has(up) || /^(?=.*\d)[\p{L}]{0,3}[\d./-]+[\p{L}]{0,3}$/u.test(word)) return up
       if (i > 0 && LOWER.has(up)) return word.toLowerCase()
-      return word
-        .toLowerCase()
-        .replace(/(^|[-/(.'])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase())
+      return word.toLowerCase().replace(/(^|[-/(.'])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase())
     })
     .join(' ')
 }
@@ -177,7 +246,9 @@ function roomNames(rawRooms: Record<string, string>[], complex: string) {
     if (n != null) return detected ? `Sala ${n} ${detected.label}` : `Sala ${n}`
     if (detected) return `Sala ${detected.label}`
     // No number: drop the complex name if the room repeats it, keep what's left.
-    const rest = fold(raw).replace(fold(complex), '').replace(/^[\s-]+|[\s-]+$/g, '')
+    const rest = fold(raw)
+      .replace(fold(complex), '')
+      .replace(/^[\s-]+|[\s-]+$/g, '')
     return rest ? titleCase(rest) : titleCase(raw)
   })
   // Guarantee unique names inside a complex.
@@ -230,9 +301,7 @@ export function loadOpenComplexes(path = CSV_PATH): AncineComplex[] {
       const number = first['NUMERO_ENDERECO_COMPLEXO']
       // Some records end the street with a comma ("Av. Piracema,"), which doubled up with the number's.
       const streetName = first['ENDERECO_COMPLEXO']!.trim().replace(/[\s,]+$/, '')
-      const street = [streetName, number && !streetName.includes(number) ? number : '']
-        .filter(Boolean)
-        .join(', ')
+      const street = [streetName, number && !streetName.includes(number) ? number : ''].filter(Boolean).join(', ')
       const complement = first['COMPLEMENTO_COMPLEXO']
       return {
         ancineId,
@@ -244,27 +313,29 @@ export function loadOpenComplexes(path = CSV_PATH): AncineComplex[] {
         neighborhood: titleCase(first['BAIRRO_COMPLEXO'] ?? ''),
         address: titleCase([street, complement].filter(Boolean).join(' - ')),
         street,
-        cep: /^\d{5}-?\d{3}$/.test(first['CEP_COMPLEXO'] ?? '') ? first['CEP_COMPLEXO']!.replace(/^(\d{5})(\d{3})$/, '$1-$2') : null,
+        cep: /^\d{5}-?\d{3}$/.test(first['CEP_COMPLEXO'] ?? '')
+          ? first['CEP_COMPLEXO']!.replace(/^(\d{5})(\d{3})$/, '$1-$2')
+          : null,
         website: website(first['PAGINA_ELETRONICA_COMPLEXO'] ?? ''),
         cnpj: mostCommon(raw.map((r) => (r['CNPJ_SALA'] ?? '').replace(/\D/g, '')).filter((c) => c.length === 14)),
         rooms: raw
           .map((r, i) => {
-          const wheelchairSeats = int(r['ASSENTOS_CADEIRANTES'])
-          const rampToSeats = yes(r['ACESSO_ASSENTOS_COM_RAMPA'])
-          const rampToRoom = yes(r['ACESSO_SALA_COM_RAMPA'])
-          return {
-            ancineId: r['REGISTRO_SALA']!,
-            rawName: r['NOME_SALA']!,
-            name: names[i]!,
-            // IMAX venues sometimes only say so in the complex name ("IMAX PALLADIUM").
-            format: detectFormat(r['NOME_SALA']!, raw.length === 1 ? r['NOME_COMPLEXO']! : '')?.format ?? null,
-            seats: int(r['ASSENTOS_SALA']),
-            wheelchairSeats,
-            reducedMobilitySeats: int(r['ASSENTOS_MOBILIDADE_REDUZIDA']),
-            largeSeats: int(r['ASSENTOS_OBESIDADE']),
-            accessibleRestroom: yes(r['BANHEIROS_ACESSIVEIS']),
-            accessible: wheelchairSeats > 0 && (rampToSeats || rampToRoom),
-          }
+            const wheelchairSeats = int(r['ASSENTOS_CADEIRANTES'])
+            const rampToSeats = yes(r['ACESSO_ASSENTOS_COM_RAMPA'])
+            const rampToRoom = yes(r['ACESSO_SALA_COM_RAMPA'])
+            return {
+              ancineId: r['REGISTRO_SALA']!,
+              rawName: r['NOME_SALA']!,
+              name: names[i]!,
+              // IMAX venues sometimes only say so in the complex name ("IMAX PALLADIUM").
+              format: detectFormat(r['NOME_SALA']!, raw.length === 1 ? r['NOME_COMPLEXO']! : '')?.format ?? null,
+              seats: int(r['ASSENTOS_SALA']),
+              wheelchairSeats,
+              reducedMobilitySeats: int(r['ASSENTOS_MOBILIDADE_REDUZIDA']),
+              largeSeats: int(r['ASSENTOS_OBESIDADE']),
+              accessibleRestroom: yes(r['BANHEIROS_ACESSIVEIS']),
+              accessible: wheelchairSeats > 0 && (rampToSeats || rampToRoom),
+            }
           })
           .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true })),
       }

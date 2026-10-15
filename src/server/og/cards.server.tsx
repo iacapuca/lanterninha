@@ -25,7 +25,11 @@ function LanternDots({ rating }: { rating: number | null }) {
               borderRadius: 13,
               border: `3px solid ${C.amber}`,
               background:
-                fill >= 1 ? C.amber : fill > 0 ? `linear-gradient(90deg, ${C.amber} 50%, transparent 50%)` : 'transparent',
+                fill >= 1
+                  ? C.amber
+                  : fill > 0
+                    ? `linear-gradient(90deg, ${C.amber} 50%, transparent 50%)`
+                    : 'transparent',
             }}
           />
         )
@@ -72,7 +76,16 @@ export function TicketCard({ kicker, title, subtitle, chips, rating, reviewCount
             background: C.paper,
           }}
         >
-          <div style={{ display: 'flex', color: C.red, fontSize: 22, fontWeight: 600, letterSpacing: 4, textTransform: 'uppercase' }}>
+          <div
+            style={{
+              display: 'flex',
+              color: C.red,
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: 4,
+              textTransform: 'uppercase',
+            }}
+          >
             {kicker}
           </div>
           <div
@@ -155,10 +168,28 @@ export function SiteCard() {
         color: C.paper,
       }}
     >
-      <div style={{ display: 'flex', color: C.amber, fontSize: 26, fontWeight: 600, letterSpacing: 5, textTransform: 'uppercase' }}>
+      <div
+        style={{
+          display: 'flex',
+          color: C.amber,
+          fontSize: 26,
+          fontWeight: 600,
+          letterSpacing: 5,
+          textTransform: 'uppercase',
+        }}
+      >
         Avaliações colaborativas de salas de cinema
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', marginTop: 26, fontFamily: 'Fraunces', fontSize: 92, lineHeight: 1.02 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          marginTop: 26,
+          fontFamily: 'Fraunces',
+          fontSize: 92,
+          lineHeight: 1.02,
+        }}
+      >
         <span>O filme você já escolheu.</span>
         <span style={{ color: C.amber }}>Agora escolha a sala.</span>
       </div>

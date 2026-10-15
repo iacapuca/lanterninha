@@ -76,7 +76,10 @@ export const ingresso = {
   cities: async () => (await get('/states', states)).flatMap((s) => s.cities),
 
   theatersInCity: async (cityId: string) => {
-    const body = await get(`/theaters/city/${cityId}/partnership/${partnership()}`, z.object({ items: z.array(z.unknown()) }))
+    const body = await get(
+      `/theaters/city/${cityId}/partnership/${partnership()}`,
+      z.object({ items: z.array(z.unknown()) }),
+    )
     // Parse one by one so a single malformed theater doesn't drop the whole city.
     return body.items.flatMap((item) => {
       const parsed = theater.safeParse(item)

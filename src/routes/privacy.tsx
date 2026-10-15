@@ -4,7 +4,11 @@ export const Route = createFileRoute('/privacy')({
   head: () => ({
     meta: [
       { title: 'Política de privacidade · Lanterninha' },
-      { name: 'description', content: 'Quais dados a Lanterninha coleta, para quê, com quem compartilha e como exercer seus direitos (LGPD).' },
+      {
+        name: 'description',
+        content:
+          'Quais dados a Lanterninha coleta, para quê, com quem compartilha e como exercer seus direitos (LGPD).',
+      },
     ],
   }),
   component: PrivacyPage,
@@ -45,17 +49,15 @@ function PrivacyPage() {
           Cloudflare a partir do IP, apenas para ordenar a lista — ela não é guardada.
         </li>
         <li>
-          <strong>Rascunhos:</strong> o texto de uma avaliação não enviada fica salvo só no seu navegador
-          (armazenamento local).
+          <strong>Rascunhos:</strong> o texto de uma avaliação não enviada fica salvo só no seu navegador (armazenamento
+          local).
         </li>
       </ul>
 
       <h2>Para que usamos</h2>
       <ul>
         <li>Criar e manter sua conta, e permitir que você publique avaliações (execução do serviço que você pediu).</li>
-        <li>
-          Enviar e-mails de serviço: confirmação de e-mail e redefinição de senha. Não enviamos propaganda.
-        </li>
+        <li>Enviar e-mails de serviço: confirmação de e-mail e redefinição de senha. Não enviamos propaganda.</li>
         <li>Proteger o site contra abuso, spam e acessos indevidos (legítimo interesse).</li>
         <li>Calcular as notas das salas e as badges da sua coleção.</li>
       </ul>

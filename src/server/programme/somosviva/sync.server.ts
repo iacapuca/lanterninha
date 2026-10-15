@@ -24,7 +24,10 @@ const VENUES = [
 
 /** Films recur across dates under new record ids, so they're keyed by title. */
 const filmId = (title: string) =>
-  `somosviva:${fold(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
+  `somosviva:${fold(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')}`
 
 async function syncVenue(venue: (typeof VENUES)[number]) {
   const [existing] = await db
@@ -46,7 +49,10 @@ async function syncVenue(venue: (typeof VENUES)[number]) {
       siteUrl: venue.siteUrl,
       updatedAt: now,
     })
-    .onConflictDoUpdate({ target: providerTheater.id, set: { cinemaId: venue.cinemaId, name: venue.name, updatedAt: now } })
+    .onConflictDoUpdate({
+      target: providerTheater.id,
+      set: { cinemaId: venue.cinemaId, name: venue.name, updatedAt: now },
+    })
 
   const events = await cinemaEvents(venue.location)
   const today = localDay(TIME_ZONE, 0)

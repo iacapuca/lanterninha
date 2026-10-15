@@ -1,14 +1,6 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react'
-import {
-  HeadContent,
-  Link,
-  Outlet,
-  Scripts,
-  createRootRoute,
-  useRouteContext,
-  useRouter,
-} from '@tanstack/react-router'
+import { HeadContent, Link, Outlet, Scripts, createRootRoute, useRouteContext, useRouter } from '@tanstack/react-router'
 import { getViewer } from '~/functions/session.functions'
 import { authClient } from '~/lib/auth-client'
 import { SITE_URL } from '~/lib/site'
@@ -80,7 +72,10 @@ function RootComponent() {
         <p>
           Lanterninha · avaliações de salas de cinema escritas pela comunidade.
           <br />
-          Salas e complexos: <a href="https://dados.gov.br/dados/conjuntos-dados/salas-de-exibicao-e-complexos-registrados-na-ancine">ANCINE, dados abertos (CC BY)</a>
+          Salas e complexos:{' '}
+          <a href="https://dados.gov.br/dados/conjuntos-dados/salas-de-exibicao-e-complexos-registrados-na-ancine">
+            ANCINE, dados abertos (CC BY)
+          </a>
           {' · '}Localizações: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors
         </p>
         <p className="site-footer-links">
@@ -115,11 +110,7 @@ function SiteHeader() {
           </Link>
           {viewer ? (
             <>
-              <Link
-                to="/users/$username"
-                params={{ username: viewer.username }}
-                activeProps={{ className: 'active' }}
-              >
+              <Link to="/users/$username" params={{ username: viewer.username }} activeProps={{ className: 'active' }}>
                 @{viewer.username}
               </Link>
               <Link to="/account" activeProps={{ className: 'active' }}>

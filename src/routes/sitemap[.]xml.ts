@@ -8,12 +8,7 @@ export const Route = createFileRoute('/sitemap.xml')({
       GET: async ({ request }) => {
         const origin = new URL(request.url).origin
         const { rooms, cinemas } = await getSitemapIds()
-        const paths = [
-          '/',
-          '/cinemas',
-          ...cinemas.map((id) => `/cinemas/${id}`),
-          ...rooms.map((id) => `/rooms/${id}`),
-        ]
+        const paths = ['/', '/cinemas', ...cinemas.map((id) => `/cinemas/${id}`), ...rooms.map((id) => `/rooms/${id}`)]
         const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${paths.map((p) => `  <url><loc>${origin}${p}</loc></url>`).join('\n')}

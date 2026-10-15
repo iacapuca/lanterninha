@@ -22,16 +22,22 @@ function TermsPage() {
 
       <h2>1. O serviço</h2>
       <p>
-        A Lanterninha reúne avaliações de salas de cinema escritas pela comunidade, dados públicos da ANCINE sobre salas e
-        complexos, e horários de sessões publicados por sites de ingressos e pelos próprios cinemas. O uso é gratuito.
+        A Lanterninha reúne avaliações de salas de cinema escritas pela comunidade, dados públicos da ANCINE sobre salas
+        e complexos, e horários de sessões publicados por sites de ingressos e pelos próprios cinemas. O uso é gratuito.
       </p>
 
       <h2>2. Sua conta</h2>
       <ul>
-        <li>Você precisa ter pelo menos 13 anos. Menores de 18 anos devem usar o site com o conhecimento dos responsáveis.</li>
-        <li>Use um e-mail seu e mantenha sua senha em segredo; você responde pelo que for publicado com a sua conta.</li>
+        <li>
+          Você precisa ter pelo menos 13 anos. Menores de 18 anos devem usar o site com o conhecimento dos responsáveis.
+        </li>
+        <li>
+          Use um e-mail seu e mantenha sua senha em segredo; você responde pelo que for publicado com a sua conta.
+        </li>
         <li>Seu @ não pode se passar por outra pessoa, marca ou cinema.</li>
-        <li>Você pode excluir sua conta quando quiser, em <Link to="/account">Conta</Link>.</li>
+        <li>
+          Você pode excluir sua conta quando quiser, em <Link to="/account">Conta</Link>.
+        </li>
       </ul>
 
       <h2>3. O que você publica</h2>
@@ -67,9 +73,8 @@ function TermsPage() {
 
       <h2>6. Responsabilidade</h2>
       <p>
-        As avaliações expressam a opinião de quem as escreveu, não da Lanterninha. O site é oferecido como está;
-        fazemos o possível para mantê-lo no ar e correto, mas não garantimos que estará sempre disponível ou livre de
-        erros.
+        As avaliações expressam a opinião de quem as escreveu, não da Lanterninha. O site é oferecido como está; fazemos
+        o possível para mantê-lo no ar e correto, mas não garantimos que estará sempre disponível ou livre de erros.
       </p>
 
       <h2>7. Privacidade</h2>

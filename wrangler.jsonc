@@ -10,7 +10,7 @@
   "workers_dev": true,
   "routes": [
     { "pattern": "lanterninha.review", "custom_domain": true },
-    { "pattern": "www.lanterninha.review", "custom_domain": true }
+    { "pattern": "www.lanterninha.review", "custom_domain": true },
   ],
   "vars": {
     "SLOW_QUERY_MS": "0",
@@ -22,7 +22,7 @@
     "INGRESSO_PROXY_URL": "",
     // Velox Tickets: cap on venues refreshed per */30 run (all of them today), and page fetches in flight.
     "VELOX_THEATER_BATCH": "150",
-    "VELOX_CONCURRENCY": "2"
+    "VELOX_CONCURRENCY": "2",
   },
   // Provider syncs (src/server/programme/*/sync.server.ts), one invocation each. Ingresso's API is behind Akamai,
   // which 403s production Worker egress — set INGRESSO_PROXY_URL to a relay (see README) or
@@ -36,7 +36,7 @@
       "database_name": "lanterninha",
       "database_id": "9f3f154b-66fc-4254-b348-3ee34960a750",
       // Flat SQL files copied from drizzle/ by db/sync-migrations.ts.
-      "migrations_dir": "migrations"
-    }
-  ]
+      "migrations_dir": "migrations",
+    },
+  ],
 }

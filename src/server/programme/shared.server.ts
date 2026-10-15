@@ -4,14 +4,37 @@
 import type { FactSource, Format, Projection, Sound } from '~/lib/domain'
 
 /** Accents out, uppercase — the form ANCINE and the portals can be compared in. */
-export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+export const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
 
 export const digits = (s: string | null | undefined) => (s ?? '').replace(/\D/g, '')
 
-const GENERIC = new Set(['CINE', 'CINEMA', 'CINEMAS', 'SHOPPING', 'SALA', 'SALAS', 'DE', 'DO', 'DA', 'THE', 'MALL', 'CENTER', 'PLAZA'])
+const GENERIC = new Set([
+  'CINE',
+  'CINEMA',
+  'CINEMAS',
+  'SHOPPING',
+  'SALA',
+  'SALAS',
+  'DE',
+  'DO',
+  'DA',
+  'THE',
+  'MALL',
+  'CENTER',
+  'PLAZA',
+])
 
 /** The meaningful words of a name, folded: "Moviemax Rosa e Silva" → MOVEMAX, ROSA, SILVA. */
-export const nameTokens = (s: string) => new Set(fold(s).split(/[^A-Z0-9]+/).filter((t) => t.length > 2 && !GENERIC.has(t)))
+export const nameTokens = (s: string) =>
+  new Set(
+    fold(s)
+      .split(/[^A-Z0-9]+/)
+      .filter((t) => t.length > 2 && !GENERIC.has(t)),
+  )
 
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const rad = (d: number) => (d * Math.PI) / 180

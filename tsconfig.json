@@ -1,5 +1,12 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "db/**/*.ts", "vite.config.ts", "drizzle.config.ts", "worker-configuration.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "db/**/*.ts",
+    "vite.config.ts",
+    "drizzle.config.ts",
+    "worker-configuration.d.ts"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2023"],

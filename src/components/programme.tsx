@@ -42,9 +42,19 @@ const PROVIDER_SITES: Record<Provider, { name: string; url: string }> = {
 /** Session types worth showing next to a time (plain 2D is the default). */
 const HIDDEN_TYPES = new Set(['2D', 'NORMAL', 'NAC', 'NACIONAL'])
 
-const dayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+const dayFormat = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'long',
+  day: '2-digit',
+  month: '2-digit',
+  timeZone: 'UTC',
+})
 
-const shortDayFormat = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+const shortDayFormat = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  timeZone: 'UTC',
+})
 
 function dayLabel(day: string, today: string, short = false) {
   const date = new Date(`${day}T12:00:00Z`)
