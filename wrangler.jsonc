@@ -13,11 +13,11 @@
     // Set to a relay's URL that forwards /v0/* to api-content.ingresso.com verbatim
     // (see README) to get around Akamai's 403 to Worker egress. Empty = call directly.
     "INGRESSO_PROXY_URL": "",
-    // Velox Tickets: how many venues' sessions to refresh per */30 run.
-    "VELOX_THEATER_BATCH": "6"
+    // Velox Tickets: cap on venues refreshed per */30 run (all of them today), and page fetches in flight.
+    "VELOX_THEATER_BATCH": "150",
+    "VELOX_CONCURRENCY": "2"
   },
-  // Provider syncs (src/server/programme/*/sync.server.ts), one invocation each so a single
-  // run stays well under the free plan's ~50 subrequests. Ingresso's API is behind Akamai,
+  // Provider syncs (src/server/programme/*/sync.server.ts), one invocation each. Ingresso's API is behind Akamai,
   // which 403s production Worker egress — set INGRESSO_PROXY_URL to a relay (see README) or
   // wait for their partner program; the cron retries harmlessly meanwhile.
   "triggers": { "crons": ["*/5 * * * *", "*/30 * * * *"] },

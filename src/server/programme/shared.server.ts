@@ -1,6 +1,6 @@
 // Helpers shared by the provider syncs (Ingresso.com, Velox Tickets):
 // accent-free text folding, ANCINE name matching, room-number extraction,
-// room-detail hints from room/session names, and D1 chunking.
+// room-detail hints from room/session names, D1 chunking and bounded concurrency.
 import type { FactSource, Format, Projection, Sound } from '~/lib/domain'
 
 /** Accents out, uppercase — the form ANCINE and the portals can be compared in. */
@@ -47,4 +47,21 @@ export const canWrite = (source: FactSource | null) => source == null || source 
 /** D1 caps bound parameters per statement, so multi-row inserts are chunked. */
 export function chunk<T>(rows: T[], size: number) {
   return Array.from({ length: Math.ceil(rows.length / size) }, (_, i) => rows.slice(i * size, (i + 1) * size))
+}
+
+/**
+ * Maps `items` through `run` with at most `limit` calls in flight, preserving
+ * order. Keeps a sync quick without bursting a provider's site.
+ */
+export async function mapLimit<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await run(items[i]!)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker))
+  return results
 }

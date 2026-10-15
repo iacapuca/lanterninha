@@ -1,13 +1,14 @@
-// Incremental Velox Tickets sync, run by the Worker's */30 cron trigger (a
-// separate invocation from Ingresso.com's */5, so each stays well under the
-// free plan's ~50 subrequests):
+// Velox Tickets sync, run by the Worker's */30 cron trigger (a separate
+// invocation from Ingresso.com's */5). On Workers Paid one run has ~10,000
+// subrequests, so each run covers everything that's due:
 //   1. weekly: refresh the city list (1 page fetch)
-//   2. venues for the CITY_BATCH least recently refreshed cities, matched to
-//      ANCINE cinemas by city + shared name tokens (Velox publishes neither
-//      CNPJ nor coordinates)
-//   3. three venue-day pages per venue for the THEATER_BATCH stalest matched
-//      venues — one fetch covers every movie, room and session of the day
+//   2. daily: every city's venues, matched to ANCINE cinemas by city + shared
+//      name tokens (Velox publishes neither CNPJ nor coordinates)
+//   3. every run: three venue-day pages per matched venue — one fetch covers
+//      every movie, room and session of the day
 //   4. drop sessions that already started more than 3 hours ago
+// Page fetches go out VELOX_CONCURRENCY at a time, so a full pass takes about
+// a minute instead of hitting the portal with a burst.
 import { env } from 'cloudflare:workers'
 import { and, asc, eq, gte, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import type { State } from '~/lib/domain'
@@ -15,15 +16,20 @@ import { timeZoneOf } from '~/lib/domain'
 import { db } from '../../db/client.server'
 import { cinema, film, providerCity, providerTheater, room, showtime } from '../../db/schema.server'
 import { velox, type VeloxCine } from './api.server'
-import { canWrite, chunk, formatHint, nameTokens, projectionHint, roomNumber, soundHint } from '../shared.server'
+import { canWrite, chunk, formatHint, mapLimit, nameTokens, projectionHint, roomNumber, soundHint } from '../shared.server'
 
 const DAY = 24 * 60 * 60 * 1000
 // Venue refresh costs ~3 subrequests per city (fetch, candidates, one batch)
-// and sessions ~5 per venue (three day pages, rooms select, one batch);
-// 5 + 6 keeps a run well under the free plan's 50-subrequest cap, and gets
-// every Velox city venue-synced within a day of the first deploy.
-const CITY_BATCH = 5
-const theaterBatch = () => Number(env.VELOX_THEATER_BATCH) || 6
+// and sessions ~5 per venue (three day pages, rooms select, one batch), so
+// these caps stay far below a Paid run's budget while covering every Velox
+// city and venue in one run. They only bind if Velox grows a lot — the point
+// at which a Queue (one message per venue) would be the better shape.
+const CITY_BATCH = 250
+const theaterBatch = () => Number(env.VELOX_THEATER_BATCH) || 150
+/** Velox page fetches in flight at once. */
+const concurrency = () => Number(env.VELOX_CONCURRENCY) || 2
+/** A venue is due again after this long; just under the cron interval, so every run refreshes it. */
+const SESSIONS_TTL = 25 * 60 * 1000
 /** Days of sessions pulled per venue: today, tomorrow and the day after. */
 const SESSION_DAYS = 3
 
@@ -96,11 +102,11 @@ async function refreshVenues() {
     .limit(CITY_BATCH)
 
   let matched = 0
-  for (const city of cities) {
+  await mapLimit(cities, concurrency(), async (city) => {
     const venues = await velox.places(city.id)
     if (!venues.length) {
       await db.update(providerCity).set({ theatersSyncedAt: new Date() }).where(eq(providerCity.id, city.id))
-      continue
+      return
     }
     const candidates = await db
       .select({ id: cinema.id, name: cinema.name, neighborhood: cinema.neighborhood })
@@ -142,7 +148,7 @@ async function refreshVenues() {
     }
     statements.push(db.update(providerCity).set({ theatersSyncedAt: new Date() }).where(eq(providerCity.id, city.id)))
     await db.batch(statements as [Statement, ...Statement[]])
-  }
+  })
   return { cities: cities.length, matched }
 }
 
@@ -287,7 +293,7 @@ async function refreshStaleSessions() {
         isNotNull(providerTheater.cinemaId),
         or(
           isNull(providerTheater.sessionsSyncedAt),
-          lt(providerTheater.sessionsSyncedAt, new Date(Date.now() - 2 * 60 * 60 * 1000)),
+          lt(providerTheater.sessionsSyncedAt, new Date(Date.now() - SESSIONS_TTL)),
         ),
       ),
     )
@@ -296,16 +302,20 @@ async function refreshStaleSessions() {
 
   let sessions = 0
   let failed = 0
-  for (const { theater, state } of stale) {
+  // Each venue fetches its three day pages one after another, so at most
+  // `concurrency()` Velox requests are in flight.
+  await mapLimit(stale, concurrency(), async ({ theater, state }) => {
     try {
-      sessions += await refreshSessions(theater, state)
+      // Await first: `sessions += await …` would read the total before other venues finish.
+      const added = await refreshSessions(theater, state)
+      sessions += added
     } catch (error) {
       failed++
       console.error(`velox: sessions for venue ${theater.id} failed`, error)
       // Push it to the back of the queue so one bad venue can't block the rest.
       await db.update(providerTheater).set({ sessionsSyncedAt: new Date() }).where(eq(providerTheater.id, theater.id))
     }
-  }
+  })
   return { venues: stale.length, sessions, failed }
 }
 
@@ -324,10 +334,7 @@ async function step<T>(name: string, run: () => Promise<T>): Promise<T | { error
 export async function syncVelox() {
   const cities = await step('cities', refreshCities)
   const venues = await step('venues', refreshVenues)
-  // A bootstrapping run (fresh city list) already spends its subrequest
-  // budget; sessions start on the next tick.
-  const bootstrapped = typeof cities === 'number' && cities > 0
-  const sessions = bootstrapped ? { venues: 0, sessions: 0, failed: 0 } : await step('sessions', refreshStaleSessions)
+  const sessions = await step('sessions', refreshStaleSessions)
   await step('cleanup', async () => {
     await db.delete(showtime).where(lt(showtime.startsAt, new Date(Date.now() - 3 * 60 * 60 * 1000)))
     // Films nobody is showing anymore.

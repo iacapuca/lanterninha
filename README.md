@@ -134,7 +134,10 @@ extracts them:
    places like Fundação Joaquim Nabuco).
 3. **Sessions:** one venue-day page per day covers every movie, room and
    session, including filters (LEG/DUB/3D…), sold-out flags and checkout URLs —
-   three pages per venue per run (`VELOX_THEATER_BATCH` venues, three days).
+   three pages (days) per venue. Every matched venue is refreshed on each
+   `*/30` run, `VELOX_CONCURRENCY` (2) page fetches at a time; `VELOX_THEATER_BATCH`
+   caps venues per run. Past a few hundred venues, move to a Queue with one
+   message per venue.
 4. **Cleanup:** shared with Ingresso's.
 
 `node --experimental-strip-types scripts/velox-smoke.ts` prints what the Velox
