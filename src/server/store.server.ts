@@ -14,7 +14,7 @@ import type {
   Tag,
 } from '~/lib/domain'
 import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
-import type { ExploreSearch, NewReview } from '~/lib/schemas'
+import type { ExploreSearch, NewReview, UpdateReview } from '~/lib/schemas'
 import { db } from './db/client.server'
 import { cinema, filmPoster, review, room, roomFact, showtime } from './db/schema.server'
 
@@ -122,7 +122,15 @@ export async function searchCinemas(filters: ExploreSearch) {
     name: [asc(cinema.name)],
   }[filters.sort]
 
-  const rows = await db
+  const rows = await selectCinemaSummaries(where)
+    .orderBy(...order)
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE)
+  return { cinemas: rows.map(toCinemaSummary), total, page, pageCount }
+}
+
+function selectCinemaSummaries(where?: SQL) {
+  return db
     .select({
       ...getColumns(cinema),
       roomCount: sql<number>`coalesce(${cinemaRooms.roomCount}, 0)`,
@@ -136,19 +144,24 @@ export async function searchCinemas(filters: ExploreSearch) {
     .leftJoin(cinemaRooms, eq(cinemaRooms.cinemaId, cinema.id))
     .leftJoin(cinemaStats, eq(cinemaStats.cinemaId, cinema.id))
     .where(where)
-    .orderBy(...order)
-    .limit(PAGE_SIZE)
-    .offset((page - 1) * PAGE_SIZE)
-
-  const cinemas: CinemaSummary[] = rows.map((r) => ({
-    ...r,
-    // Special formats only ("Padrão" says nothing on a card), in the canonical order.
-    formats: FORMAT_IDS.filter((f) => f !== 'standard' && r.formats?.split(',').includes(f)),
-    average: round1(r.average),
-    showing: Boolean(r.showing),
-  }))
-  return { cinemas, total, page, pageCount }
+    .$dynamic()
 }
+
+type CinemaSummaryRow = Awaited<ReturnType<typeof selectCinemaSummaries>>[number]
+const toCinemaSummary = (r: CinemaSummaryRow): CinemaSummary => ({
+  ...r,
+  // Special formats only ("Padrão" says nothing on a card), in the canonical order.
+  formats: FORMAT_IDS.filter((f) => f !== 'standard' && r.formats?.split(',').includes(f)),
+  average: round1(r.average),
+  showing: Boolean(r.showing),
+})
+
+/** One cinema's card data, for its share image. */
+export async function cinemaShareSummary(id: string) {
+  const [row] = await selectCinemaSummaries(eq(cinema.id, id)).limit(1)
+  return row ? toCinemaSummary(row) : null
+}
+
 
 /** Every city with a cinema (or just one state's), busiest first. */
 export async function listCities(state?: State) {
@@ -388,6 +401,48 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
     throw error
   }
   return { ok: true, id, roomId: input.roomId }
+}
+
+/** One of the user's own reviews, in the shape the review form edits. */
+export async function getOwnReview(userId: string, id: string) {
+  const found = await db.query.review.findFirst({ where: { id, userId } })
+  if (!found) return null
+  const { picture, sound, comfort, cleanliness } = found
+  return {
+    id: found.id,
+    roomId: found.roomId,
+    rating: found.rating,
+    criteria: { picture, sound, comfort, cleanliness },
+    row: found.row,
+    film: found.film,
+    body: found.body,
+    tags: found.tags,
+  }
+}
+
+/** Only the author can change a review; its room and date stay as they were. */
+export async function updateReview(userId: string, input: UpdateReview) {
+  const updated = await db
+    .update(review)
+    .set({
+      rating: input.rating,
+      ...input.criteria,
+      row: input.row,
+      film: input.film,
+      body: input.body,
+      tags: input.tags,
+    })
+    .where(and(eq(review.id, input.id), eq(review.userId, userId), eq(review.roomId, input.roomId)))
+    .returning({ id: review.id, roomId: review.roomId })
+  return updated[0] ?? null
+}
+
+export async function deleteReview(userId: string, id: string) {
+  const deleted = await db
+    .delete(review)
+    .where(and(eq(review.id, id), eq(review.userId, userId)))
+    .returning({ id: review.id, roomId: review.roomId })
+  return deleted[0] ?? null
 }
 
 // ---------- Community room facts (format, projection, sound) ----------

@@ -202,6 +202,10 @@ p.form-errors { padding-left: 0; }
 .form-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .auth { max-width: 460px; margin-inline: auto; }
 .auth form { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.field-link { align-self: flex-end; margin-top: -6px; font-size: .85rem; }
+.checkbox-field { display: flex; gap: 10px; align-items: flex-start; font-size: .85rem; color: var(--text-muted); }
+.checkbox-field input { margin-top: 3px; accent-color: var(--amber); }
+.notice { background: var(--amber-soft); border: 1px solid #ffb54755; color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
 
 /* Nearby */
 .nearby-item { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; }
@@ -326,6 +330,8 @@ p.form-errors { padding-left: 0; }
 .review-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .92rem; }
 .review-user { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none; }
 .review-film { color: var(--ink-soft); font-size: .85rem; }
+.review-actions { display: flex; gap: 16px; margin: 12px 0 0; font-size: .82rem; }
+.review-actions a, .review-actions .link-button { color: var(--ink-soft); text-decoration: underline dotted; }
 .review-body { margin: 10px 0; font-size: 1rem; }
 .review-criteria { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--ink-soft); margin: 0; }
 .review-criteria strong { color: var(--ink); }
@@ -422,8 +428,32 @@ p.form-errors { padding-left: 0; }
 .badge-stub.earned .badge-stub-emoji { filter: none; }
 .badge-stub.earned .badge-stub-status { color: var(--ticket-red); }
 
+/* Account */
+.account { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+.account .page-head { margin-bottom: 0; }
+.account-section h2 { font-size: 1.15rem; margin: 0 0 10px; }
+.account-section p { margin: 0 0 12px; }
+.account-form { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.account-danger { border-color: #a8231b66; }
+[data-slot=dialog-content] .field { color: var(--ink-soft); }
+[data-slot=dialog-content] .form-errors { color: var(--ticket-red); }
+[data-slot=dialog-content] [data-variant=outline] { color: var(--ink); border-color: #2b1a1040; background: transparent; }
+[data-slot=dialog-content] [data-variant=destructive] { color: var(--paper); background: var(--ticket-red); }
+.account-legal { text-align: center; font-size: .85rem; }
+.badge-verified { color: #9be29b; border-color: #9be29b55; }
+
+/* Legal pages */
+.legal { max-width: 720px; margin: 8px auto 40px; line-height: 1.65; }
+.legal h1 { margin: 6px 0 14px; }
+.legal .lede { font-size: 1.08rem; color: var(--text); }
+.legal h2 { font-size: 1.25rem; margin: 30px 0 8px; }
+.legal p, .legal li { color: var(--text-muted); }
+.legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; list-style: disc; }
+.legal strong { color: var(--text); }
+
 .cinema-links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .92rem; }
 .site-footer a { color: var(--text-muted); }
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 
 } /* @layer components */
 

@@ -3,6 +3,7 @@ import { getCinema, getProgramme } from '~/functions/rooms.functions'
 import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { pluralize } from '~/lib/format'
 import { RoomCard } from '~/components/room-card'
+import { shareMeta } from '~/lib/site'
 
 // SSR: full. Small, cacheable, SEO-relevant page — nothing worth deferring.
 export const Route = createFileRoute('/cinemas/$cinemaId')({
@@ -17,13 +18,24 @@ export const Route = createFileRoute('/cinemas/$cinemaId')({
           { title: `${loaderData.cinema.name} · Lanterninha` },
           {
             name: 'description',
-            content: `${pluralize(loaderData.rooms.length, 'sala', 'salas')} do ${loaderData.cinema.name} em ${loaderData.cinema.city}/${loaderData.cinema.state}, avaliadas pela comunidade.`,
+            content: cinemaDescription(loaderData),
           },
+          ...shareMeta({
+            title: `${loaderData.cinema.name} · Lanterninha`,
+            description: cinemaDescription(loaderData),
+            path: `/cinemas/${loaderData.cinema.id}`,
+            image: `/og/cinema/${loaderData.cinema.id}`,
+            version: String(loaderData.rooms.reduce((n, r) => n + r.reviewCount, 0)),
+          }),
         ]
       : [],
   }),
   component: CinemaPage,
 })
+
+function cinemaDescription({ cinema, rooms }: { cinema: { name: string; city: string; state: string }; rooms: unknown[] }) {
+  return `${pluralize(rooms.length, 'sala', 'salas')} do ${cinema.name} em ${cinema.city}/${cinema.state}, avaliadas pela comunidade.`
+}
 
 function CinemaPage() {
   const { cinema, rooms, programme } = Route.useLoaderData()

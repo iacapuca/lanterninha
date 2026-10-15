@@ -1,4 +1,19 @@
-import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { Link, useRouteContext, useRouter } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
+import { toast } from 'sonner'
+import { deleteReview } from '~/functions/reviews.functions'
+import { Button } from '~/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '~/components/ui/dialog'
 import { CRITERIA, CRITERION_IDS, type Review, type ReviewWithRoom } from '~/lib/domain'
 import { formatDate, formatRating } from '~/lib/format'
 import { Lanterns } from './lanterns'
@@ -7,6 +22,8 @@ import { Ticket, ticketSerial } from './ticket'
 /** A review is the stub you kept from the session: who, when, which row, how many 🔦. */
 export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
   const context = 'room' in review ? review : null
+  const { viewer } = useRouteContext({ from: '__root__' })
+  const mine = viewer?.username === review.username
   return (
     <article>
       <Ticket
@@ -66,8 +83,62 @@ export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
             ))}
           </ul>
         )}
+        {mine && <OwnReviewActions review={review} />}
       </Ticket>
     </article>
+  )
+}
+
+/** Edit and delete, shown only on the viewer's own reviews (the server checks ownership too). */
+function OwnReviewActions({ review }: { review: Review }) {
+  const router = useRouter()
+  const remove = useServerFn(deleteReview)
+  const [pending, setPending] = useState(false)
+  return (
+    <div className="review-actions">
+      <Link to="/rooms/$roomId/review" params={{ roomId: review.roomId }} search={{ edit: review.id }}>
+        Editar
+      </Link>
+      <Dialog>
+        <DialogTrigger asChild>
+          <button type="button" className="link-button">
+            Excluir
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir esta avaliação?</DialogTitle>
+            <DialogDescription>Ela sai do seu diário e da página da sala. Não dá para desfazer.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={async () => {
+                setPending(true)
+                try {
+                  await remove({ data: { id: review.id } })
+                  await router.invalidate()
+                  toast('Avaliação excluída.')
+                } catch {
+                  toast.error('Não foi possível excluir agora.')
+                } finally {
+                  setPending(false)
+                }
+              }}
+            >
+              {pending ? 'Excluindo…' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 

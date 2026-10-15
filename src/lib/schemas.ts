@@ -83,6 +83,9 @@ export const newReviewSchema = z.object({
   tags: z.array(z.enum(TAGS)).max(5, 'No máximo 5 etiquetas').default([]),
 })
 export type NewReview = z.infer<typeof newReviewSchema>
+/** Editing keeps the review's room; the id says which of the author's reviews. */
+export const updateReviewSchema = newReviewSchema.extend({ id: z.string().min(1).max(80) })
+export type UpdateReview = z.infer<typeof updateReviewSchema>
 export type NewReviewInput = z.input<typeof newReviewSchema>
 
 /** A vote for one room detail; the value must be one of that field's options. */

@@ -28,6 +28,8 @@
   // which 403s production Worker egress — set INGRESSO_PROXY_URL to a relay (see README) or
   // wait for their partner program; the cron retries harmlessly meanwhile.
   "triggers": { "crons": ["*/5 * * * *", "*/30 * * * *"] },
+  // Cloudflare Email Service: verification and password-reset emails from the domain.
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["nao-responda@lanterninha.review"] }],
   "d1_databases": [
     {
       "binding": "DB",

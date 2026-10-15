@@ -10,16 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as NearbyRouteImport } from './routes/nearby'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as CinemasIndexRouteImport } from './routes/cinemas/index'
 import { Route as CinemasCinemaIdRouteImport } from './routes/cinemas/$cinemaId'
+import { Route as OgSiteRouteImport } from './routes/og/site'
 import { Route as PostersFilmIdRouteImport } from './routes/posters/$filmId'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
 import { Route as UsersUsernameRouteImport } from './routes/users/$username'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as OgCinemaCinemaIdRouteImport } from './routes/og/cinema.$cinemaId'
+import { Route as OgRoomRoomIdRouteImport } from './routes/og/room.$roomId'
 import { Route as RoomsRoomIdIndexRouteImport } from './routes/rooms/$roomId/index'
 import { Route as RoomsRoomIdReviewRouteImport } from './routes/rooms/$roomId/review'
 
@@ -28,9 +36,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NearbyRoute = NearbyRouteImport.update({
   id: '/nearby',
   path: '/nearby',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -48,6 +76,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CinemasIndexRoute = CinemasIndexRouteImport.update({
   id: '/cinemas/',
   path: '/cinemas/',
@@ -56,6 +89,11 @@ const CinemasIndexRoute = CinemasIndexRouteImport.update({
 const CinemasCinemaIdRoute = CinemasCinemaIdRouteImport.update({
   id: '/cinemas/$cinemaId',
   path: '/cinemas/$cinemaId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgSiteRoute = OgSiteRouteImport.update({
+  id: '/og/site',
+  path: '/og/site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PostersFilmIdRoute = PostersFilmIdRouteImport.update({
@@ -78,6 +116,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OgCinemaCinemaIdRoute = OgCinemaCinemaIdRouteImport.update({
+  id: '/og/cinema/$cinemaId',
+  path: '/og/cinema/$cinemaId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgRoomRoomIdRoute = OgRoomRoomIdRouteImport.update({
+  id: '/og/room/$roomId',
+  path: '/og/room/$roomId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsRoomIdIndexRoute = RoomsRoomIdIndexRouteImport.update({
   id: '/rooms/$roomId/',
   path: '/rooms/$roomId/',
@@ -91,47 +139,71 @@ const RoomsRoomIdReviewRoute = RoomsRoomIdReviewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/og/site': typeof OgSiteRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
+  '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
   '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/og/site': typeof OgSiteRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas': typeof CinemasIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
+  '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
   '/rooms/$roomId': typeof RoomsRoomIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/og/site': typeof OgSiteRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
+  '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
   '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
 }
@@ -139,62 +211,94 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
+    | '/forgot-password'
     | '/nearby'
+    | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/terms'
     | '/cinemas/$cinemaId'
+    | '/og/site'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
     | '/rooms/'
     | '/api/auth/$'
+    | '/og/cinema/$cinemaId'
+    | '/og/room/$roomId'
     | '/rooms/$roomId/review'
     | '/rooms/$roomId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
+    | '/forgot-password'
     | '/nearby'
+    | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/terms'
     | '/cinemas/$cinemaId'
+    | '/og/site'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas'
     | '/rooms'
     | '/api/auth/$'
+    | '/og/cinema/$cinemaId'
+    | '/og/room/$roomId'
     | '/rooms/$roomId/review'
     | '/rooms/$roomId'
   id:
     | '__root__'
     | '/'
+    | '/account'
+    | '/forgot-password'
     | '/nearby'
+    | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/terms'
     | '/cinemas/$cinemaId'
+    | '/og/site'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
     | '/rooms/'
     | '/api/auth/$'
+    | '/og/cinema/$cinemaId'
+    | '/og/room/$roomId'
     | '/rooms/$roomId/review'
     | '/rooms/$roomId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   NearbyRoute: typeof NearbyRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   CinemasCinemaIdRoute: typeof CinemasCinemaIdRoute
+  OgSiteRoute: typeof OgSiteRoute
   PostersFilmIdRoute: typeof PostersFilmIdRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
   CinemasIndexRoute: typeof CinemasIndexRoute
   RoomsIndexRoute: typeof RoomsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  OgCinemaCinemaIdRoute: typeof OgCinemaCinemaIdRoute
+  OgRoomRoomIdRoute: typeof OgRoomRoomIdRoute
   RoomsRoomIdReviewRoute: typeof RoomsRoomIdReviewRoute
   RoomsRoomIdIndexRoute: typeof RoomsRoomIdIndexRoute
 }
@@ -208,11 +312,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/nearby': {
       id: '/nearby'
       path: '/nearby'
       fullPath: '/nearby'
       preLoaderRoute: typeof NearbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -236,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cinemas/': {
       id: '/cinemas/'
       path: '/cinemas'
@@ -248,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/cinemas/$cinemaId'
       fullPath: '/cinemas/$cinemaId'
       preLoaderRoute: typeof CinemasCinemaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/site': {
+      id: '/og/site'
+      path: '/og/site'
+      fullPath: '/og/site'
+      preLoaderRoute: typeof OgSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posters/$filmId': {
@@ -278,6 +424,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/cinema/$cinemaId': {
+      id: '/og/cinema/$cinemaId'
+      path: '/og/cinema/$cinemaId'
+      fullPath: '/og/cinema/$cinemaId'
+      preLoaderRoute: typeof OgCinemaCinemaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/room/$roomId': {
+      id: '/og/room/$roomId'
+      path: '/og/room/$roomId'
+      fullPath: '/og/room/$roomId'
+      preLoaderRoute: typeof OgRoomRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms/$roomId/': {
       id: '/rooms/$roomId/'
       path: '/rooms/$roomId'
@@ -297,16 +457,24 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   NearbyRoute: NearbyRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   CinemasCinemaIdRoute: CinemasCinemaIdRoute,
+  OgSiteRoute: OgSiteRoute,
   PostersFilmIdRoute: PostersFilmIdRoute,
   UsersUsernameRoute: UsersUsernameRoute,
   CinemasIndexRoute: CinemasIndexRoute,
   RoomsIndexRoute: RoomsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  OgCinemaCinemaIdRoute: OgCinemaCinemaIdRoute,
+  OgRoomRoomIdRoute: OgRoomRoomIdRoute,
   RoomsRoomIdReviewRoute: RoomsRoomIdReviewRoute,
   RoomsRoomIdIndexRoute: RoomsRoomIdIndexRoute,
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
 import { Link, createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
-import { createReview } from '~/functions/reviews.functions'
+import { createReview, getOwnReview, updateReview } from '~/functions/reviews.functions'
 import { getRoom } from '~/functions/rooms.functions'
 import { CRITERIA, CRITERION_IDS, TAGS, type Criterion, type Tag } from '~/lib/domain'
 import { newReviewSchema } from '~/lib/schemas'
@@ -14,6 +15,9 @@ import { Button } from '~/components/ui/button'
 // which would otherwise cause a hydration mismatch.
 export const Route = createFileRoute('/rooms/$roomId/review')({
   ssr: 'data-only',
+  // ?edit=<review id> edits one of the viewer's own reviews instead of writing a new one.
+  validateSearch: z.object({ edit: z.string().min(1).max(80).optional().catch(undefined) }),
+  loaderDeps: ({ search }) => ({ edit: search.edit }),
   beforeLoad: ({ context, location }) => {
     // UX guard only; `createReview` enforces the session itself.
     if (!context.viewer) {
@@ -21,9 +25,21 @@ export const Route = createFileRoute('/rooms/$roomId/review')({
     }
     return { viewer: context.viewer }
   },
-  loader: ({ params }) => getRoom({ data: { id: params.roomId } }),
+  loader: async ({ params, deps }) => {
+    const [room, editing] = await Promise.all([
+      getRoom({ data: { id: params.roomId } }),
+      deps.edit ? getOwnReview({ data: { id: deps.edit } }) : null,
+    ])
+    return { room, editing }
+  },
   head: ({ loaderData }) => ({
-    meta: [{ title: loaderData ? `Avaliar ${loaderData.name} · Lanterninha` : 'Avaliar · Lanterninha' }],
+    meta: [
+      {
+        title: loaderData
+          ? `${loaderData.editing ? 'Editar avaliação' : 'Avaliar'} ${loaderData.room.name} · Lanterninha`
+          : 'Avaliar · Lanterninha',
+      },
+    ],
   }),
   pendingComponent: () => <div className="panel skeleton" style={{ height: 480 }} />,
   component: ReviewPage,
@@ -57,24 +73,31 @@ function readDraft(key: string): Draft {
 }
 
 function ReviewPage() {
-  const room = Route.useLoaderData()
+  const { room, editing } = Route.useLoaderData()
   const { viewer } = Route.useRouteContext()
   const router = useRouter()
   const navigate = useNavigate()
   const createReviewFn = useServerFn(createReview)
+  const updateReviewFn = useServerFn(updateReview)
 
   const draftKey = `lanterninha:draft:${room.id}`
-  const [draft, setDraft] = useState(() => readDraft(draftKey))
+  const [draft, setDraft] = useState<Draft>(() =>
+    editing
+      ? { ...editing, row: editing.row ?? '', film: editing.film ?? '' }
+      : readDraft(draftKey),
+  )
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    // Edits aren't drafts: leaving the page just keeps the published version.
+    if (editing) return
     try {
       localStorage.setItem(draftKey, JSON.stringify(draft))
     } catch {
       // Storage may be unavailable (private mode); the draft just won't persist.
     }
-  }, [draftKey, draft])
+  }, [draftKey, draft, editing])
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -89,10 +112,14 @@ function ReviewPage() {
     setErrors([])
     setSubmitting(true)
     try {
-      await createReviewFn({ data: parsed.data })
-      try {
-        localStorage.removeItem(draftKey)
-      } catch {}
+      if (editing) {
+        await updateReviewFn({ data: { ...parsed.data, id: editing.id } })
+      } else {
+        await createReviewFn({ data: parsed.data })
+        try {
+          localStorage.removeItem(draftKey)
+        } catch {}
+      }
       await router.invalidate()
       await navigate({ to: '/rooms/$roomId', params: { roomId: room.id }, search: { reviews: 'recent' } })
     } catch (err) {
@@ -109,7 +136,7 @@ function ReviewPage() {
           ← {room.name} · {room.cinema.name}
         </Link>
       </p>
-      <h1>Como foi a sessão, @{viewer.username}?</h1>
+      <h1>{editing ? 'Editar sua avaliação' : `Como foi a sessão, @${viewer.username}?`}</h1>
 
       <section>
         <h2>Nota geral</h2>
@@ -203,9 +230,9 @@ function ReviewPage() {
 
       <div className="form-actions">
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Publicando…' : 'Publicar avaliação'}
+          {submitting ? 'Salvando…' : editing ? 'Salvar alterações' : 'Publicar avaliação'}
         </Button>
-        <span className="muted">Rascunho salvo neste navegador.</span>
+        <span className="muted">{editing ? 'A data da avaliação continua a mesma.' : 'Rascunho salvo neste navegador.'}</span>
       </div>
     </form>
   )

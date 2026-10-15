@@ -9,6 +9,7 @@ import { Ticket, ticketSerial } from '~/components/ticket'
 import { RoomFacts } from '~/components/room-facts'
 import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { Button } from '~/components/ui/button'
+import { shareMeta } from '~/lib/site'
 
 const REVIEW_SORT_LABELS = { recent: 'Recentes', best: 'Melhores', worst: 'Piores' } as const
 
@@ -35,8 +36,13 @@ export const Route = createFileRoute('/rooms/$roomId/')({
       meta: [
         { title },
         { name: 'description', content: description },
-        { property: 'og:title', content: title },
-        { property: 'og:description', content: description },
+        ...shareMeta({
+          title,
+          description,
+          path: `/rooms/${room.id}`,
+          image: `/og/room/${room.id}`,
+          version: `${room.reviewCount}-${room.average ?? 0}`,
+        }),
       ],
       scripts: [
         {

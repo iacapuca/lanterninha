@@ -5,12 +5,14 @@ import { username } from 'better-auth/plugins/username'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { USERNAME_PATTERN } from '~/lib/schemas'
 import { db } from './db/client.server'
+import { sendPasswordResetEmail, sendVerificationEmail } from './email.server'
 import { account, session, user, verification } from './db/schema.server'
 
 /**
- * Email + password with a public @username: the simplest Better Auth setup
- * that needs no email provider and no OAuth app. People register with
- * username, email and password, and can sign in with either username or email.
+ * Email + password with a public @username. People register with username,
+ * email and password, and can sign in with either. Verification and password
+ * reset emails go out through Cloudflare Email Service; verifying is
+ * encouraged (it's how a forgotten password is recovered) but not required.
  */
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
@@ -27,6 +29,22 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     autoSignIn: true,
+    // The link lands on /reset-password with the token (see that route).
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, displayName(user), url)
+    },
+    revokeSessionsOnPasswordReset: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail(user.email, displayName(user), url)
+    },
+  },
+  user: {
+    // LGPD: people can delete their account; reviews and votes cascade with it.
+    deleteUser: { enabled: true },
   },
   plugins: [
     username({
@@ -38,3 +56,7 @@ export const auth = betterAuth({
     tanstackStartCookies(),
   ],
 })
+
+function displayName(user: { name: string; username?: string | null }) {
+  return user.username ?? user.name
+}

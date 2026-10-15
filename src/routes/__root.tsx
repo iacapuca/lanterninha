@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-router'
 import { getViewer } from '~/functions/session.functions'
 import { authClient } from '~/lib/auth-client'
+import { SITE_URL } from '~/lib/site'
 import appCss from '~/styles.css?url'
 import { Button } from '~/components/ui/button'
 import { Toaster } from '~/components/ui/sonner'
@@ -32,6 +33,11 @@ export const Route = createRootRoute({
       { name: 'theme-color', content: '#120d0a' },
       { property: 'og:site_name', content: 'Lanterninha' },
       { property: 'og:locale', content: 'pt_BR' },
+      // Default share card; cinema and room pages override it with their own ticket.
+      { property: 'og:image', content: `${SITE_URL}/og/site` },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
@@ -77,6 +83,11 @@ function RootComponent() {
           Salas e complexos: <a href="https://dados.gov.br/dados/conjuntos-dados/salas-de-exibicao-e-complexos-registrados-na-ancine">ANCINE, dados abertos (CC BY)</a>
           {' · '}Localizações: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors
         </p>
+        <p className="site-footer-links">
+          <Link to="/privacy">Privacidade</Link>
+          <Link to="/terms">Termos de uso</Link>
+          <a href="mailto:contato@lanterninha.review">Contato</a>
+        </p>
       </footer>
     </>
   )
@@ -110,6 +121,9 @@ function SiteHeader() {
                 activeProps={{ className: 'active' }}
               >
                 @{viewer.username}
+              </Link>
+              <Link to="/account" activeProps={{ className: 'active' }}>
+                Conta
               </Link>
               <button
                 type="button"

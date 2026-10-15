@@ -3,6 +3,7 @@ import { Link, createFileRoute, redirect, stripSearchParams, useRouter } from '@
 import { z } from 'zod'
 import { authClient } from '~/lib/auth-client'
 import { signInSchema, signUpSchema } from '~/lib/schemas'
+import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 
 const signInSearchSchema = z.object({
@@ -13,6 +14,8 @@ const signInSearchSchema = z.object({
     .regex(/^\/(?!\/)/)
     .optional()
     .catch(undefined),
+  /** Set after a password reset, to confirm it worked. */
+  reset: z.boolean().optional().catch(undefined),
 })
 
 // SSR: full. Already signed-in visitors are redirected on the server.
@@ -38,7 +41,7 @@ const AUTH_ERRORS: Record<string, string> = {
 }
 
 function SignInPage() {
-  const { mode, redirect: redirectTo } = Route.useSearch()
+  const { mode, redirect: redirectTo, reset } = Route.useSearch()
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -53,6 +56,7 @@ function SignInPage() {
     if (isRegister) {
       const parsed = signUpSchema.safeParse(form)
       if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? 'Dados inválidos')
+      if (form.accept !== 'on') return setError('Para criar a conta, aceite os Termos e a Política de privacidade.')
       setPending(true)
       const { username, email, password } = parsed.data
       result = await authClient.signUp.email({ name: username, username, email, password })
@@ -76,6 +80,7 @@ function SignInPage() {
     }
     // The session cookie is set; re-run beforeLoad/loaders so the viewer updates everywhere.
     await router.invalidate()
+    if (isRegister) toast('Enviamos um link de confirmação para o seu e-mail.', { duration: 8000 })
     await router.navigate({ href: redirectTo ?? '/' })
   }
 
@@ -107,6 +112,8 @@ function SignInPage() {
           : 'Entre com seu @usuário ou e-mail.'}
       </p>
 
+      {reset && !isRegister && <p className="notice">Senha alterada. Entre com a senha nova.</p>}
+
       {/* `key` resets the fields when switching between modes. */}
       <form key={mode} onSubmit={submit} noValidate>
         {isRegister ? (
@@ -123,6 +130,13 @@ function SignInPage() {
               <span>Senha</span>
               <input name="password" type="password" autoComplete="new-password" minLength={8} required />
             </label>
+            <label className="checkbox-field">
+              <input name="accept" type="checkbox" required />
+              <span>
+                Li e aceito os <Link to="/terms">Termos de uso</Link> e a{' '}
+                <Link to="/privacy">Política de privacidade</Link>.
+              </span>
+            </label>
           </>
         ) : (
           <>
@@ -134,6 +148,9 @@ function SignInPage() {
               <span>Senha</span>
               <input name="password" type="password" autoComplete="current-password" required />
             </label>
+            <Link to="/forgot-password" className="field-link">
+              Esqueci minha senha
+            </Link>
           </>
         )}
         {error && (

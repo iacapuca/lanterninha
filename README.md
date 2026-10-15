@@ -175,12 +175,34 @@ shows them as a collection of ticket stubs.
 
 ### Auth
 
-Better Auth with email + password and the `username` plugin: the simplest
-setup that needs no email provider or OAuth app. You register with a username,
-email and password, and sign in with either the username or the email. The
-browser talks to `/api/auth/*` through `authClient`. On the server,
-`auth.api.getSession()` backs `getViewer` (root `beforeLoad`) and the
-`requireSession` middleware that protects writes.
+Better Auth with email + password and the `username` plugin. You register with
+a username, email and password (accepting the Terms and Privacy policy), and
+sign in with either the username or the email. The browser talks to
+`/api/auth/*` through `authClient`. On the server, `auth.api.getSession()`
+backs `getViewer` (root `beforeLoad`) and the `requireSession` middleware that
+protects writes.
+
+**Email** goes out through Cloudflare Email Service (the `EMAIL` send_email
+binding, sender `nao-responda@lanterninha.review`, `src/server/email.server.ts`):
+a confirmation link on sign-up and password-reset links
+(`/forgot-password` → email → `/reset-password`). Confirming is encouraged, not
+required. Locally, Miniflare writes sent emails under `.wrangler/tmp/email/`.
+
+**Account and LGPD:** `/account` shows the email status (with resend), changes
+the password, and deletes the account (reviews and votes cascade). Authors can
+edit (`/rooms/<id>/review?edit=<review id>`) or delete their reviews. `/privacy`
+and `/terms` are linked from the footer and sign-up; contact
+`contato@lanterninha.review` (route it with Email Routing).
+
+### Share previews
+
+Cinema and room pages set Open Graph/Twitter tags with a 1200×630 PNG drawn on
+the Worker (`/og/cinema/<id>`, `/og/room/<id>`, `/og/site` as the default): a
+paper ticket with the name, place, chips and rating. satori (pinned to 0.32 —
+later versions compile bundled HarfBuzz Wasm on import, which Workers forbid)
+lays out JSX, resvg rasterizes; both Wasm files and the fonts (Fraunces,
+Figtree, OFL) are bundled modules. Images are edge-cached for a day, and the
+page adds `?v=<reviews>` so a new review gets a new card.
 
 ### UI
 
