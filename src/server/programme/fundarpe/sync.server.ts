@@ -3,10 +3,10 @@
 // are sequential and shared with Fundarpe's theatres, so each run checks the
 // codes from a little below the newest São Luiz film seen to a little above
 // it (new films get new codes), one request at a time.
-import { and, eq, gte, like, sql } from 'drizzle-orm'
+import { and, eq, gte, isNotNull, like, notLike, sql } from 'drizzle-orm'
 import { db } from '../../db/client.server'
 import { film, providerTheater, room, showtime } from '../../db/schema.server'
-import { chunk, localDay, zonedTime } from '../shared.server'
+import { chunk, fold, localDay, zonedTime } from '../shared.server'
 import { isoDay, presentations } from './api.server'
 
 const REFRESH_EVERY = 3 * 60 * 60 * 1000
@@ -23,6 +23,44 @@ const SITE_URL = 'https://ingressosfundarpe.com.br/'
 const VENUES = [{ match: /cinema s[aã]o luiz/i, theaterId: 'fundarpe:sao-luiz', cinemaId: 'cinema-sao-luiz', name: 'Cinema São Luiz' }] as const
 
 const filmIdOf = (code: number) => `fundarpe:${ID_BASE}:${code}`
+/** Title compared without case, accents or punctuation: "Naza." and "NAZA" match. */
+const titleKey = (title: string) => fold(title).toLowerCase().replace(/[^a-z0-9]+/g, '')
+
+/**
+ * Fundarpe publishes no posters or runtimes, but the same films usually play
+ * elsewhere: borrow those details from another provider's film with the same
+ * title (Ingresso.com first, then Velox).
+ */
+async function borrowDetails(films: Map<string, typeof film.$inferInsert>) {
+  if (films.size === 0) return
+  const donors = await db
+    .select({
+      id: film.id,
+      title: film.title,
+      posterUrl: film.posterUrl,
+      durationMinutes: film.durationMinutes,
+      contentRating: film.contentRating,
+      genres: film.genres,
+      releaseYear: film.releaseYear,
+    })
+    .from(film)
+    .where(and(isNotNull(film.posterUrl), notLike(film.id, 'fundarpe:%')))
+  const byTitle = new Map<string, (typeof donors)[number]>()
+  // Velox ids are prefixed, Ingresso's are numeric: insert Velox first so Ingresso wins.
+  for (const d of donors.sort((a, b) => Number(!a.id.startsWith('velox:')) - Number(!b.id.startsWith('velox:'))))
+    byTitle.set(titleKey(d.title), d)
+  for (const f of films.values()) {
+    const donor = byTitle.get(titleKey(f.title))
+    if (!donor) continue
+    Object.assign(f, {
+      posterUrl: donor.posterUrl,
+      durationMinutes: donor.durationMinutes,
+      contentRating: donor.contentRating,
+      genres: donor.genres,
+      releaseYear: donor.releaseYear,
+    })
+  }
+}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** The newest event code we already know a São Luiz film by. */
@@ -89,6 +127,8 @@ async function syncVenue(venue: (typeof VENUES)[number]) {
     }
   }
 
+  await borrowDetails(films)
+
   const from = zonedTime(TIME_ZONE, today, '00:00')
   type Statement = Parameters<typeof db.batch>[0][number]
   const statements: Statement[] = [
@@ -96,7 +136,18 @@ async function syncVenue(venue: (typeof VENUES)[number]) {
       db
         .insert(film)
         .values(batch)
-        .onConflictDoUpdate({ target: film.id, set: { title: sql`excluded.title`, updatedAt: sql`excluded.updated_at` } }),
+        .onConflictDoUpdate({
+          target: film.id,
+          set: {
+            title: sql`excluded.title`,
+            posterUrl: sql`excluded.poster_url`,
+            durationMinutes: sql`excluded.duration_minutes`,
+            contentRating: sql`excluded.content_rating`,
+            genres: sql`excluded.genres`,
+            releaseYear: sql`excluded.release_year`,
+            updatedAt: sql`excluded.updated_at`,
+          },
+        }),
     ),
     db.delete(showtime).where(and(eq(showtime.theaterId, venue.theaterId), gte(showtime.startsAt, from))),
     ...chunk(rows, 7).map((batch) => db.insert(showtime).values(batch).onConflictDoNothing()),
