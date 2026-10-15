@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { getUserProfile } from '~/functions/rooms.functions'
 import { formatRating, pluralize } from '~/lib/format'
-import { BADGES } from '~/lib/domain'
+import { BADGES, badgeImage } from '~/lib/domain'
 import { Lanterns } from '~/components/lanterns'
 import { ReviewItem } from '~/components/review-item'
 import { Button } from '~/components/ui/button'
@@ -62,9 +62,7 @@ function ProfilePage() {
               const earned = done >= badge.goal
               return (
                 <li key={badge.id} className={earned ? 'badge-stub earned' : 'badge-stub'}>
-                  <span className="badge-stub-emoji" aria-hidden="true">
-                    {badge.emoji}
-                  </span>
+                  <img className="badge-stub-art" src={badgeImage(badge.id)} alt="" width={112} height={112} loading="lazy" />
                   <strong>{badge.name}</strong>
                   <span className="badge-stub-hint">{badge.hint}</span>
                   {earned ? (

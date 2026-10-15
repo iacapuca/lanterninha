@@ -3,7 +3,7 @@ import { Link, useLocation, useRouteContext, useRouter } from '@tanstack/react-r
 import { useServerFn } from '@tanstack/react-start'
 import { toast } from 'sonner'
 import { voteRoomFact } from '~/functions/reviews.functions'
-import { BADGES, ROOM_FACTS, ROOM_FACT_FIELDS, type FactSource, type RoomFactField } from '~/lib/domain'
+import { BADGES, badgeImage, ROOM_FACTS, ROOM_FACT_FIELDS, type FactSource, type RoomFactField } from '~/lib/domain'
 import { pluralize } from '~/lib/format'
 import { roomFactVoteSchema } from '~/lib/schemas'
 import { Button } from '~/components/ui/button'
@@ -88,7 +88,12 @@ function FactPopover({
       toast.success('Obrigado! A ficha da sala foi atualizada.')
       for (const id of newBadges) {
         const badge = BADGES.find((b) => b.id === id)
-        if (badge) toast(`${badge.emoji} Você ganhou ${badge.name}!`, { description: badge.hint, duration: 8000 })
+        if (badge)
+          toast(`Você ganhou ${badge.name}!`, {
+            description: badge.hint,
+            duration: 8000,
+            icon: <img src={badgeImage(badge.id)} alt="" className="toast-stamp" width={40} height={40} />,
+          })
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível salvar.')

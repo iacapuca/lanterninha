@@ -403,7 +403,11 @@ p.form-errors { padding-left: 0; }
   padding: 18px 14px 14px; border-radius: 10px; border: 1.5px dashed var(--line);
   color: var(--text-muted); font-size: .8rem; line-height: 1.35;
 }
-.badge-stub-emoji { font-size: 2.1rem; line-height: 1; filter: grayscale(1) opacity(.4); }
+.badge-stub-art {
+  width: 112px; height: 112px; margin-bottom: 4px;
+  /* Locked: a faint pale outline of the stamp (inverted so the dark rings show on the dark page). */
+  filter: grayscale(1) invert(1) opacity(.28);
+}
 .badge-stub strong { font-family: var(--display); font-size: 1rem; line-height: 1.2; color: var(--text); }
 .badge-stub-hint { font-size: .75rem; flex: 1; }
 .badge-stub-status {
@@ -425,7 +429,17 @@ p.form-errors { padding-left: 0; }
 .badge-stub.earned:nth-child(even) { transform: rotate(1deg); }
 .badge-stub.earned:hover { transform: rotate(0) translateY(-2px); }
 .badge-stub.earned strong { color: var(--ink); }
-.badge-stub.earned .badge-stub-emoji { filter: none; }
+.badge-stub.earned .badge-stub-art { filter: none; transform: rotate(-6deg); }
+.badge-stub.earned:nth-child(even) .badge-stub-art { transform: rotate(5deg); }
+/* A badge toast lands like a stamp hitting the ticket. */
+@keyframes stamp-in {
+  0% { transform: scale(2.2) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(.92) rotate(-4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-6deg); }
+}
+[data-sonner-toast] [data-icon]:has(.toast-stamp) { width: 40px; height: 40px; margin-right: 6px; }
+.toast-stamp { width: 40px; height: 40px; animation: stamp-in .45s cubic-bezier(.2, .8, .3, 1.2) both; }
+@media (prefers-reduced-motion: reduce) { .toast-stamp { animation: none; } }
 .badge-stub.earned .badge-stub-status { color: var(--ticket-red); }
 
 /* Account */

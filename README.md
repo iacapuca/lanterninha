@@ -173,6 +173,13 @@ Badges are derived from contributions and reviews (`BADGES` in
 `src/lib/domain.ts`), so there's no badge state to keep in sync. The profile
 shows them as a collection of ticket stubs.
 
+Badge artwork (`public/badges/<id>.png`) is a set of rubber stamps drawn once
+with Workers AI (FLUX.2 [dev]) by `db/badges/generate.ts`, which also keys out
+the paper so only the ink is left. The model draws no text; names live in HTML.
+To redo one: delete `db/badges/raw/<id>.jpg`, then
+`CLOUDFLARE_API_TOKEN=$(pnpm exec wrangler auth token) node db/badges/generate.ts <id>`,
+and review with `node db/badges/sheet.ts /tmp/badges.png`.
+
 ### Auth
 
 Better Auth with email + password and the `username` plugin. You register with
