@@ -36,6 +36,7 @@ const PROVIDER_SITES: Record<Provider, { name: string; url: string }> = {
   ingresso: { name: 'Ingresso.com', url: 'https://www.ingresso.com' },
   velox: { name: 'Velox Tickets', url: 'https://www.veloxtickets.com' },
   somosviva: { name: 'Parque Apipucos', url: 'https://apipucos.somosviva.com.br/' },
+  fundarpe: { name: 'Fundarpe', url: 'https://ingressosfundarpe.com.br/' },
 }
 
 /** Session types worth showing next to a time (plain 2D is the default). */

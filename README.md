@@ -154,6 +154,17 @@ keeps only Apipucos "Cinema" events, and runs at most every 6 h on the `*/30`
 trigger. Posters are stored once in `film_poster` and served from
 `/posters/<film id>`. The venue is linked to its ANCINE cinema by hand.
 
+**Fundarpe (Cinema São Luiz).** Pernambuco's culture foundation sells São
+Luiz's tickets on ingressosfundarpe.com.br. Its API
+(`api.ingressosfundarpe.com.br/v1/event/presentation`, key in the
+`FUNDARPE_API_KEY` secret) returns one event's sessions by `codPeca`, and has
+no listing; codes are sequential and shared with Fundarpe's theatres. The sync
+(`src/server/programme/fundarpe/`) scans from a little below the newest São
+Luiz code seen to a little above it, one request at a time, at most every 3 h,
+and keeps only sessions at Cinema São Luiz (the API can't tell films from
+shows, so mixed venues like Theatro Cinema Guarany are left out). Locally,
+workerd can stall on this host's IPv6 addresses; production is unaffected.
+
 Room details resolve **community vote > provider > ANCINE name**. Rooms and
 cinemas show an "Em cartaz" programme linking to the provider's checkout, with
 times in the cinema's own time zone.

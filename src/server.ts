@@ -4,6 +4,7 @@
 // never delays the other's.
 import { createServerEntry, createStartHandler, defaultStreamHandler } from '@tanstack/react-start/server'
 import { syncIngresso } from './server/programme/ingresso/sync.server'
+import { syncFundarpe } from './server/programme/fundarpe/sync.server'
 import { syncSomosViva } from './server/programme/somosviva/sync.server'
 import { syncVelox } from './server/programme/velox/sync.server'
 
@@ -28,8 +29,10 @@ export default {
   async scheduled(event: ScheduledEvent) {
     if (event.cron === VELOX_CRON) {
       await syncVelox()
-      // Self-throttled to every 6 h; shares the */30 trigger rather than adding a cron.
+      // Self-throttled (every 6 h); shares the */30 trigger rather than adding a cron.
       await syncSomosViva()
+      // Every 3 h, same reasoning.
+      await syncFundarpe()
     }
     else await syncIngresso()
   },
