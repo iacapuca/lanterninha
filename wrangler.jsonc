@@ -6,6 +6,8 @@
   "main": "./src/server.ts",
   "observability": { "enabled": true },
   // lanterninha.review is canonical; www and *.workers.dev 301 to it (src/server.ts).
+  // Kept on (routes turn it off by default) so old links reach the redirect.
+  "workers_dev": true,
   "routes": [
     { "pattern": "lanterninha.review", "custom_domain": true },
     { "pattern": "www.lanterninha.review", "custom_domain": true }
