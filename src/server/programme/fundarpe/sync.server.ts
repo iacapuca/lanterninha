@@ -2,7 +2,7 @@
 // Runs on the */30 cron, refreshing at most every REFRESH_EVERY. Event codes
 // are sequential and shared with Fundarpe's theatres, so each run checks the
 // codes from a little below the newest São Luiz film seen to a little above
-// it (new films get new codes), one request at a time.
+// that (new films get new codes), one request at a time.
 import { and, eq, gte, isNotNull, like, notLike, sql } from 'drizzle-orm'
 import { db } from '../../db/client.server'
 import { film, providerTheater, room, showtime } from '../../db/schema.server'

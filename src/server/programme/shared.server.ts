@@ -54,7 +54,7 @@ export function chunk<T>(rows: T[], size: number) {
  * order. Keeps a sync quick without bursting a provider's site.
  */
 export async function mapLimit<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
-  const results = new Array<R>(items.length)
+  const results: R[] = Array.from({ length: items.length })
   let next = 0
   const worker = async () => {
     while (next < items.length) {

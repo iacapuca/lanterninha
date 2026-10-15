@@ -42,8 +42,15 @@ const escapeHtml = (s: string) =>
  * MapLibre (~250 KB gzipped) is imported on mount, so only this page pays for it.
  */
 export function CinemaMap({ cinemas, position, highlighted }: Props) {
-  const container = useRef<HTMLDivElement>(null)
+  const container = useRef<HTMLElement>(null)
   const map = useRef<MapLibreMap | null>(null)
+  // Resolves once the map exists, so later effects can wait for it instead of polling.
+  const mapReady = useRef<{ promise: Promise<MapLibreMap>; resolve: (m: MapLibreMap) => void } | null>(null)
+  mapReady.current ??= (() => {
+    let resolve!: (m: MapLibreMap) => void
+    const promise = new Promise<MapLibreMap>((r) => (resolve = r))
+    return { promise, resolve }
+  })()
   const me = useRef<Marker | null>(null)
   const lastHighlight = useRef<string | null>(null)
   const navigate = useNavigate()
@@ -73,6 +80,7 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
       created.touchZoomRotate.disableRotation()
       created.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
       instance = map.current = created
+      mapReady.current!.resolve(created)
 
       instance.on('load', () => {
         instance!.addSource('cinemas', {
@@ -187,18 +195,16 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
     if (!position) return
     let cancelled = false
     void (async () => {
-      const maplibregl = await import('maplibre-gl')
-      // Wait for the map created by the first effect.
-      while (!map.current && !cancelled) await new Promise((r) => setTimeout(r, 50))
-      if (cancelled || !map.current) return
+      const [maplibregl, created] = await Promise.all([import('maplibre-gl'), mapReady.current!.promise])
+      if (cancelled || map.current !== created) return
       if (!me.current) {
         const dot = document.createElement('div')
         dot.className = 'map-me'
         dot.title = 'Você'
         me.current = new maplibregl.Marker({ element: dot })
       }
-      me.current!.setLngLat([position.lng, position.lat]).addTo(map.current)
-      map.current.flyTo({ center: [position.lng, position.lat], zoom: 11, speed: 1.6 })
+      me.current!.setLngLat([position.lng, position.lat]).addTo(created)
+      created.flyTo({ center: [position.lng, position.lat], zoom: 11, speed: 1.6 })
     })()
     return () => {
       cancelled = true
@@ -214,5 +220,5 @@ export function CinemaMap({ cinemas, position, highlighted }: Props) {
     lastHighlight.current = highlighted
   }, [highlighted])
 
-  return <div ref={container} className="cinema-map" role="region" aria-label="Mapa dos cinemas" />
+  return <section ref={container} className="cinema-map" aria-label="Mapa dos cinemas" />
 }

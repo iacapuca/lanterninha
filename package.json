@@ -19,7 +19,13 @@
     "demo:build": "node db/demo/generate.ts",
     "db:import:local": "wrangler d1 execute lanterninha --local --file db/ancine/import.sql",
     "db:demo:local": "wrangler d1 execute lanterninha --local --file db/demo/seed.sql",
-    "db:import:remote": "wrangler d1 execute lanterninha --remote --file db/ancine/import.sql"
+    "db:import:remote": "wrangler d1 execute lanterninha --remote --file db/ancine/import.sql",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
   },
   "devEngines": {
     "packageManager": {
@@ -54,6 +60,9 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "drizzle-kit": "1.0.0-rc.4",
+    "lefthook": "^2.2.2",
+    "oxfmt": "^0.73.0",
+    "oxlint": "^1.88.0",
     "shadcn": "^4.21.4",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
@@ -61,6 +70,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^5.0.4",
     "wrangler": "^4.151.0"
   }
 }

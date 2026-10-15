@@ -96,14 +96,17 @@ function NearbyPage() {
       <div className="split nearby-split">
         <ol className="stack nearby-list">
           {sorted.map((c) => (
-            <li
-              key={c.id}
-              className="panel nearby-item"
-              onMouseEnter={() => setHighlighted(c.id)}
-              onMouseLeave={() => setHighlighted((h) => (h === c.id ? null : h))}
-            >
+            <li key={c.id} className="panel nearby-item">
               <div>
-                <Link to="/cinemas/$cinemaId" params={{ cinemaId: c.id }}>
+                {/* Hover or keyboard focus on the link lights the cinema up on the map. */}
+                <Link
+                  to="/cinemas/$cinemaId"
+                  params={{ cinemaId: c.id }}
+                  onMouseEnter={() => setHighlighted(c.id)}
+                  onMouseLeave={() => setHighlighted((h) => (h === c.id ? null : h))}
+                  onFocus={() => setHighlighted(c.id)}
+                  onBlur={() => setHighlighted((h) => (h === c.id ? null : h))}
+                >
                   <strong>{c.name}</strong>
                 </Link>
                 <p className="muted">

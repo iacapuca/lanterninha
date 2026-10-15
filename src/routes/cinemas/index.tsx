@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link, createFileRoute, stripSearchParams, useNavigate } from '@tanstack/react-router'
 import { ChevronsUpDownIcon } from 'lucide-react'
 import { searchCinemas } from '~/functions/rooms.functions'
@@ -206,6 +206,7 @@ function CityCombobox({
   onChange: (city: CityOption | undefined) => void
 }) {
   const [open, setOpen] = useState(false)
+  const listId = useId()
   const label = city ? (state ? `${city}/${state}` : city) : 'Todas'
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -214,6 +215,7 @@ function CityCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-controls={listId}
           aria-label="Cidade"
           className="h-10 w-full justify-between rounded-lg px-3 font-normal"
         >
@@ -221,7 +223,7 @@ function CityCombobox({
           <ChevronsUpDownIcon className="opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 max-w-[calc(100vw-32px)] p-0" align="start">
+      <PopoverContent id={listId} className="w-80 max-w-[calc(100vw-32px)] p-0" align="start">
         <Command filter={(value, search) => (fold(value).includes(fold(search)) ? 1 : 0)}>
           <CommandInput placeholder={state ? `Buscar cidade em ${state}…` : 'Buscar cidade…'} />
           <CommandList className="max-h-80">

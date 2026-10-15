@@ -12,17 +12,19 @@ export const Route = createFileRoute('/users/$username')({
   head: ({ loaderData }) => ({
     meta: [{ title: loaderData ? `@${loaderData.username} · Lanterninha` : 'Perfil · Lanterninha' }],
   }),
-  notFoundComponent: () => {
-    const { username } = Route.useParams()
-    return (
-      <section className="empty-state">
-        <h1>Não encontramos @{username}</h1>
-        <p className="muted">Confira se o nome de usuário está certo.</p>
-      </section>
-    )
-  },
+  notFoundComponent: ProfileNotFound,
   component: ProfilePage,
 })
+
+function ProfileNotFound() {
+  const { username } = Route.useParams()
+  return (
+    <section className="empty-state">
+      <h1>Não encontramos @{username}</h1>
+      <p className="muted">Confira se o nome de usuário está certo.</p>
+    </section>
+  )
+}
 
 function ProfilePage() {
   const profile = Route.useLoaderData()

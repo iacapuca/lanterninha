@@ -18,8 +18,9 @@ export const createReview = createServerFn({ method: 'POST' })
     try {
       result = await store.createReview(context.userId, data)
     } catch (error) {
-      // Never send database errors (SQL, parameters) to the client.
+      // Never send database errors (SQL, parameters) to the client, not even as `cause`.
       console.error('createReview failed', error)
+      // oxlint-disable-next-line preserve-caught-error
       throw new Error('Não foi possível publicar agora. Tente de novo em instantes.')
     }
     if (!result.ok) throw new Error(ERRORS[result.reason])

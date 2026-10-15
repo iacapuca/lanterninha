@@ -110,7 +110,7 @@ export function titleCase(raw: string) {
       const up = word.toUpperCase()
       if (BRANDS[up]) return BRANDS[up]
       // Codes like "4DX", "L4" or "BV.174" stay upper-case; numbers glued to words don't count.
-      if (UPPER.has(up) || /^(?=.*\d)[\p{L}]{0,3}[\d.\/-]+[\p{L}]{0,3}$/u.test(word)) return up
+      if (UPPER.has(up) || /^(?=.*\d)[\p{L}]{0,3}[\d./-]+[\p{L}]{0,3}$/u.test(word)) return up
       if (i > 0 && LOWER.has(up)) return word.toLowerCase()
       return word
         .toLowerCase()
