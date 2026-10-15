@@ -26,7 +26,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install || echo \"lefthook: hooks not installed (no git?)\""
   },
   "dependencies": {
     "@resvg/resvg-wasm": "2.7.0-alpha.2",
