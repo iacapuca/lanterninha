@@ -12,3 +12,4 @@ dist
 db/ancine/*.csv
 db/ancine/import.sql
 db/badges/raw/
+.DS_Store
