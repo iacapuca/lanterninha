@@ -182,20 +182,21 @@ export type ContributionStats = {
   firstAnswers: number
 }
 
+/** Each badge is a goal on one contribution counter, so locked badges can show progress. */
 export const BADGES = [
-  { id: 'first-review', emoji: '🎟️', name: 'Primeira sessão', hint: 'Avalie sua primeira sala', earned: (s: ContributionStats) => s.reviews >= 1 },
-  { id: 'regular', emoji: '🔦', name: 'Lanterninha de plantão', hint: 'Avalie 10 salas', earned: (s: ContributionStats) => s.reviews >= 10 },
-  { id: 'traveler', emoji: '🧭', name: 'Cinéfilo viajante', hint: 'Avalie salas em 3 cidades', earned: (s: ContributionStats) => s.cities >= 3 },
-  { id: 'screen-spotter', emoji: '🖼️', name: 'Olho de tela', hint: 'Informe o tipo de tela de uma sala', earned: (s: ContributionStats) => s.format >= 1 },
-  { id: 'screen-inspector', emoji: '📐', name: 'Fiscal de tela', hint: 'Informe o tipo de tela de 10 salas', earned: (s: ContributionStats) => s.format >= 10 },
-  { id: 'projectionist', emoji: '📽️', name: 'Projecionista', hint: 'Informe a projeção de 5 salas', earned: (s: ContributionStats) => s.projection >= 5 },
-  { id: 'sharp-ears', emoji: '🎧', name: 'Ouvido apurado', hint: 'Informe o som de 5 salas', earned: (s: ContributionStats) => s.sound >= 5 },
-  { id: 'trailblazer', emoji: '🚩', name: 'Abre-alas', hint: 'Seja a primeira pessoa a informar um detalhe de uma sala', earned: (s: ContributionStats) => s.firstAnswers >= 1 },
-] as const
+  { id: 'first-review', emoji: '🍿', name: 'Primeira sessão', hint: 'Avalie sua primeira sala', metric: 'reviews', goal: 1 },
+  { id: 'regular', emoji: '🔦', name: 'Lanterninha de plantão', hint: 'Avalie 10 salas', metric: 'reviews', goal: 10 },
+  { id: 'traveler', emoji: '🧭', name: 'Cinéfilo viajante', hint: 'Avalie salas em 3 cidades', metric: 'cities', goal: 3 },
+  { id: 'screen-spotter', emoji: '🖼️', name: 'Olho de tela', hint: 'Informe o tipo de tela de uma sala', metric: 'format', goal: 1 },
+  { id: 'screen-inspector', emoji: '📐', name: 'Fiscal de tela', hint: 'Informe o tipo de tela de 10 salas', metric: 'format', goal: 10 },
+  { id: 'projectionist', emoji: '📽️', name: 'Projecionista', hint: 'Informe a projeção de 5 salas', metric: 'projection', goal: 5 },
+  { id: 'sharp-ears', emoji: '🎧', name: 'Ouvido apurado', hint: 'Informe o som de 5 salas', metric: 'sound', goal: 5 },
+  { id: 'trailblazer', emoji: '🚩', name: 'Abre-alas', hint: 'Seja a primeira pessoa a informar um detalhe de uma sala', metric: 'firstAnswers', goal: 1 },
+] as const satisfies ReadonlyArray<{ metric: keyof ContributionStats; goal: number } & Record<'id' | 'emoji' | 'name' | 'hint', string>>
 export type BadgeId = (typeof BADGES)[number]['id']
 
 export function earnedBadges(stats: ContributionStats): BadgeId[] {
-  return BADGES.filter((b) => b.earned(stats)).map((b) => b.id)
+  return BADGES.filter((b) => stats[b.metric] >= b.goal).map((b) => b.id)
 }
 
 /** Brazil's time zones by state (Fernando de Noronha and western Amazonas aside). */

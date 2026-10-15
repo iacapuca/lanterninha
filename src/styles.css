@@ -362,21 +362,41 @@ p.form-errors { padding-left: 0; }
 .fact-cta:hover { background: #a8231b22; }
 .fact-source { font: .72rem var(--body); color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; }
 .ticket .link-button { color: var(--ink-soft); }
+/* Badge collection: earned badges are torn ticket stubs, locked ones their dashed outline. */
+.badge-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr));
+  gap: 14px; list-style: none; margin: 0; padding: 0;
+}
 .badge-stub {
-  position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
-  padding: 16px 12px 14px; border-radius: 10px; background: var(--bg-raised); border: 2px dashed var(--line);
-  color: var(--text-muted); font-size: .85rem;
+  --notch: 8px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
+  padding: 18px 14px 14px; border-radius: 10px; border: 1.5px dashed var(--line);
+  color: var(--text-muted); font-size: .8rem; line-height: 1.35;
 }
-.badge-stub-emoji { font-size: 2rem; filter: grayscale(1) opacity(.35); }
-.badge-stub strong { font-family: var(--display); font-size: .95rem; }
-.badge-stub-hint { font-size: .74rem; }
+.badge-stub-emoji { font-size: 2.1rem; line-height: 1; filter: grayscale(1) opacity(.4); }
+.badge-stub strong { font-family: var(--display); font-size: 1rem; line-height: 1.2; color: var(--text); }
+.badge-stub-hint { font-size: .75rem; flex: 1; }
+.badge-stub-status {
+  margin-top: 4px; font: 600 .6rem var(--body); letter-spacing: .14em; text-transform: uppercase;
+}
+.badge-stub-status.locked { opacity: .7; }
+.badge-stub-progress { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.badge-stub-bar { flex: 1; height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.badge-stub-bar span { display: block; height: 100%; background: var(--amber); border-radius: inherit; }
 .badge-stub.earned {
-  background: var(--paper); color: var(--ink); border: 0; border-top: 2px dashed #2b1a1040;
-  filter: drop-shadow(0 8px 16px #0007); transform: rotate(-1deg);
+  border: 0; color: var(--ink-soft);
+  background: repeating-linear-gradient(90deg, #0000 0 3px, #00000006 3px 4px), var(--paper);
+  filter: drop-shadow(0 8px 16px #0007); transform: rotate(-1.2deg); transition: transform .2s;
+  /* Notches at the sides, like the room tickets. */
+  mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
 }
-.badge-stub.earned:nth-child(even) { transform: rotate(1.2deg); }
+.badge-stub.earned:nth-child(even) { transform: rotate(1deg); }
+.badge-stub.earned:hover { transform: rotate(0) translateY(-2px); }
+.badge-stub.earned strong { color: var(--ink); }
 .badge-stub.earned .badge-stub-emoji { filter: none; }
-.badge-stub.earned .badge-stub-hint { color: var(--ticket-red); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; font-size: .62rem; }
+.badge-stub.earned .badge-stub-status { color: var(--ticket-red); }
 
 .cinema-links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .92rem; }
 .site-footer a { color: var(--text-muted); }

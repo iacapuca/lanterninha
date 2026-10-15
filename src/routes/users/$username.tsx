@@ -38,33 +38,50 @@ function ProfilePage() {
           {profile.reviews.length > 0 && (
             <p className="muted">
               {pluralize(profile.reviews.length, 'sala avaliada', 'salas avaliadas')} em{' '}
-              {profile.cities.join(', ')} · média {formatRating(profile.average)}{' '}
+              {profile.cities.length > 3 ? pluralize(profile.cities.length, 'cidade', 'cidades') : profile.cities.join(', ')} · média{' '}
+              {formatRating(profile.average)}{' '}
               <Lanterns rating={profile.average} size={14} />
             </p>
           )}
         </div>
       </header>
 
-      <section className="section badges" aria-labelledby="badges-title">
+      <section className="section" aria-labelledby="badges-title">
         <div className="section-head">
           <h2 id="badges-title">Coleção</h2>
           <span className="muted">
-            {profile.badges.length} de {BADGES.length}
+            {profile.badges.length} de {BADGES.length} conquistadas
           </span>
         </div>
+        {/* Earned stubs first, then the closest goals. */}
         <ul className="badge-grid">
-          {BADGES.map((badge) => {
-            const earned = profile.badges.includes(badge.id)
-            return (
-              <li key={badge.id} className={earned ? 'badge-stub earned' : 'badge-stub'}>
-                <span className="badge-stub-emoji" aria-hidden="true">
-                  {badge.emoji}
-                </span>
-                <strong>{badge.name}</strong>
-                <span className="badge-stub-hint">{earned ? 'Conquistado' : badge.hint}</span>
-              </li>
-            )
-          })}
+          {[...BADGES]
+            .map((badge) => ({ badge, done: Math.min(profile.stats[badge.metric], badge.goal) }))
+            .sort((a, b) => Number(b.done >= b.badge.goal) - Number(a.done >= a.badge.goal) || b.done / b.badge.goal - a.done / a.badge.goal)
+            .map(({ badge, done }) => {
+              const earned = done >= badge.goal
+              return (
+                <li key={badge.id} className={earned ? 'badge-stub earned' : 'badge-stub'}>
+                  <span className="badge-stub-emoji" aria-hidden="true">
+                    {badge.emoji}
+                  </span>
+                  <strong>{badge.name}</strong>
+                  <span className="badge-stub-hint">{badge.hint}</span>
+                  {earned ? (
+                    <span className="badge-stub-status">Conquistada</span>
+                  ) : badge.goal > 1 ? (
+                    <span className="badge-stub-progress" aria-label={`${done} de ${badge.goal}`}>
+                      <span className="badge-stub-bar">
+                        <span style={{ width: `${(done / badge.goal) * 100}%` }} />
+                      </span>
+                      {done}/{badge.goal}
+                    </span>
+                  ) : (
+                    <span className="badge-stub-status locked">Bloqueada</span>
+                  )}
+                </li>
+              )
+            })}
         </ul>
       </section>
 
@@ -77,11 +94,17 @@ function ProfilePage() {
           </Button>
         </section>
       ) : (
-        <div className="stack">
-          {profile.reviews.map((review) => (
-            <ReviewItem key={review.id} review={review} />
-          ))}
-        </div>
+        <section className="section" aria-labelledby="diary-title">
+          <div className="section-head">
+            <h2 id="diary-title">Diário</h2>
+            <span className="muted">{pluralize(profile.reviews.length, 'sessão', 'sessões')}</span>
+          </div>
+          <div className="stack">
+            {profile.reviews.map((review) => (
+              <ReviewItem key={review.id} review={review} />
+            ))}
+          </div>
+        </section>
       )}
     </>
   )

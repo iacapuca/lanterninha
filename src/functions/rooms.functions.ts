@@ -73,7 +73,8 @@ export const getUserProfile = createServerFn({ method: 'GET' })
       store.getUserIdByUsername(data.username),
     ])
     if (!profile || !userId) throw notFound()
-    return { ...profile, badges: earnedBadges(await store.getContributionStats(userId)) }
+    const stats = await store.getContributionStats(userId)
+    return { ...profile, stats, badges: earnedBadges(stats) }
   })
 
 export const getCinemaLocations = createServerFn({ method: 'GET' }).handler(() =>
