@@ -37,10 +37,15 @@ const project = (p: Position) => ({
   y: ((BOUNDS.north - p.lat) / (BOUNDS.north - BOUNDS.south)) * 400,
 })
 
+/** Some browsers never answer when the OS location service is off, despite `timeout`. */
+const LOCATE_GIVE_UP_MS = 12_000
+
 function NearbyPage() {
-  const cinemas = Route.useLoaderData()
-  const [position, setPosition] = useState<Position | null>(null)
+  const { cinemas, approximate } = Route.useLoaderData()
+  const [precise, setPrecise] = useState<Position | null>(null)
   const [status, setStatus] = useState<'idle' | 'locating' | 'denied'>('idle')
+  // The browser's position once granted; until then, the city-level one from the network.
+  const position: Position | null = precise ?? approximate
 
   const sorted = useMemo(() => {
     const withDistance = cinemas.map((c) => ({ ...c, km: position ? distanceKm(position, c) : null }))
@@ -55,13 +60,19 @@ function NearbyPage() {
   function locate() {
     if (!('geolocation' in navigator)) return setStatus('denied')
     setStatus('locating')
+    let settled = false
+    const settle = (next: Position | null) => {
+      if (settled) return
+      settled = true
+      clearTimeout(giveUp)
+      if (next) setPrecise(next)
+      setStatus(next ? 'idle' : 'denied')
+    }
+    const giveUp = setTimeout(() => settle(null), LOCATE_GIVE_UP_MS)
     navigator.geolocation.getCurrentPosition(
-      (p) => {
-        setPosition({ lat: p.coords.latitude, lng: p.coords.longitude })
-        setStatus('idle')
-      },
-      () => setStatus('denied'),
-      { enableHighAccuracy: false, timeout: 10_000 },
+      (p) => settle({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => settle(null),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
     )
   }
 
@@ -71,14 +82,21 @@ function NearbyPage() {
         <p className="eyebrow">Perto de mim</p>
         <h1>Qual a melhor sala aqui do lado?</h1>
         <p className="muted">
-          Sua localização fica só no seu navegador — nada é enviado ao servidor. Distâncias com ~ usam o
-          centro da cidade.
+          {precise
+            ? 'Usando a localização do seu navegador, que não sai dele.'
+            : approximate
+              ? `Pela sua conexão, você está perto de ${approximate.city ?? 'uma cidade brasileira'}. Para mais precisão, use a localização do navegador (ela não sai dele).`
+              : 'Use a localização do navegador (ela não sai dele) para ver as salas mais próximas.'}{' '}
+          Distâncias com ~ usam o centro da cidade do cinema.
         </p>
         <Button type="button" onClick={locate} disabled={status === 'locating'}>
-          {status === 'locating' ? 'Procurando…' : position ? 'Atualizar localização' : 'Usar minha localização'}
+          {status === 'locating' ? 'Procurando…' : precise ? 'Atualizar localização' : 'Usar minha localização'}
         </Button>
         {status === 'denied' && (
-          <p className="form-errors">Não conseguimos sua localização. Mostrando por nota.</p>
+          <p className="form-errors">
+            Não conseguimos a localização do navegador (confira se ela está ativada no sistema).{' '}
+            {approximate ? 'Mostrando pela sua conexão.' : 'Mostrando por nota.'}
+          </p>
         )}
       </header>
 

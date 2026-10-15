@@ -4,7 +4,7 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { getRequestHeaders } from '@tanstack/react-start/server'
+import { getRequest, getRequestHeaders } from '@tanstack/react-start/server'
 import { earnedBadges } from '~/lib/domain'
 import { exploreSearchSchema, roomSearchSchema } from '~/lib/schemas'
 import { auth } from '~/server/auth.server'
@@ -77,9 +77,19 @@ export const getUserProfile = createServerFn({ method: 'GET' })
     return { ...profile, stats, badges: earnedBadges(stats) }
   })
 
-export const getCinemaLocations = createServerFn({ method: 'GET' }).handler(() =>
-  store.getCinemaLocations(),
-)
+/**
+ * Every geocoded cinema, plus the visitor's approximate position from
+ * Cloudflare's IP geolocation (city-level, never stored), so "Perto de mim"
+ * works before, or without, the browser's location permission.
+ */
+export const getCinemaLocations = createServerFn({ method: 'GET' }).handler(async () => {
+  const cf = (getRequest() as Request & { cf?: IncomingRequestCfProperties }).cf
+  const lat = Number(cf?.latitude)
+  const lng = Number(cf?.longitude)
+  const approximate =
+    cf?.country === 'BR' && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng, city: cf.city ?? null } : null
+  return { cinemas: await store.getCinemaLocations(), approximate }
+})
 
 /** What's playing (from Ingresso.com), for a room or a cinema. Slow-ish: streamed. */
 export const getProgramme = createServerFn({ method: 'GET' })
