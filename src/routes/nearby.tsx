@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { getCinemaLocations } from '~/functions/rooms.functions'
 import { formatRating, pluralize } from '~/lib/format'
+import { CinemaMap } from '~/components/cinema-map'
 import { Lanterns } from '~/components/lanterns'
 import { Button } from '~/components/ui/button'
 
@@ -30,13 +31,6 @@ function distanceKm(a: Position, b: Position) {
 
 const LIST_SIZE = 30
 
-// Bounding box of mainland Brazil for the dot plot.
-const BOUNDS = { west: -74, east: -34, north: 5.5, south: -34 }
-const project = (p: Position) => ({
-  x: ((p.lng - BOUNDS.west) / (BOUNDS.east - BOUNDS.west)) * 400,
-  y: ((BOUNDS.north - p.lat) / (BOUNDS.north - BOUNDS.south)) * 400,
-})
-
 /** Some browsers never answer when the OS location service is off, despite `timeout`. */
 const LOCATE_GIVE_UP_MS = 12_000
 
@@ -46,6 +40,7 @@ function NearbyPage() {
   const [status, setStatus] = useState<'idle' | 'locating' | 'denied'>('idle')
   // The browser's position once granted; until then, the city-level one from the network.
   const position: Position | null = precise ?? approximate
+  const [highlighted, setHighlighted] = useState<string | null>(null)
 
   const sorted = useMemo(() => {
     const withDistance = cinemas.map((c) => ({ ...c, km: position ? distanceKm(position, c) : null }))
@@ -54,8 +49,6 @@ function NearbyPage() {
       : withDistance.sort((a, b) => (b.average ?? 0) - (a.average ?? 0) || b.roomCount - a.roomCount)
     return ranked.slice(0, LIST_SIZE)
   }, [cinemas, position])
-
-  const me = position && project(position)
 
   function locate() {
     if (!('geolocation' in navigator)) return setStatus('denied')
@@ -100,10 +93,15 @@ function NearbyPage() {
         )}
       </header>
 
-      <div className="split">
+      <div className="split nearby-split">
         <ol className="stack nearby-list">
           {sorted.map((c) => (
-            <li key={c.id} className="panel nearby-item">
+            <li
+              key={c.id}
+              className="panel nearby-item"
+              onMouseEnter={() => setHighlighted(c.id)}
+              onMouseLeave={() => setHighlighted((h) => (h === c.id ? null : h))}
+            >
               <div>
                 <Link to="/cinemas/$cinemaId" params={{ cinemaId: c.id }}>
                   <strong>{c.name}</strong>
@@ -126,22 +124,8 @@ function NearbyPage() {
           ))}
         </ol>
 
-        <aside className="panel">
-          <svg viewBox="0 0 400 400" className="dot-map" role="img" aria-label="Cinemas no mapa">
-            {cinemas.map((c) => {
-              const { x, y } = project(c)
-              return (
-                <circle key={c.id} cx={x} cy={y} r={c.reviewCount > 0 ? 3 + (c.average ?? 0) : 2} className="dot">
-                  <title>{c.name}</title>
-                </circle>
-              )
-            })}
-            {me && (
-              <circle cx={me.x} cy={me.y} r={6} className="dot-me">
-                <title>Você</title>
-              </circle>
-            )}
-          </svg>
+        <aside className="nearby-map">
+          <CinemaMap cinemas={cinemas} position={position} highlighted={highlighted} />
         </aside>
       </div>
     </>

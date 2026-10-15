@@ -16,7 +16,7 @@ import type {
 import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
 import type { ExploreSearch, NewReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, review, room, roomFact, showtime } from './db/schema.server'
+import { cinema, filmPoster, review, room, roomFact, showtime } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -523,4 +523,13 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
     },
   })
   return { linked, providers, today, showtimes }
+}
+
+export async function getFilmPoster(filmId: string) {
+  const [poster] = await db
+    .select({ contentType: filmPoster.contentType, data: filmPoster.data })
+    .from(filmPoster)
+    .where(eq(filmPoster.filmId, filmId))
+    .limit(1)
+  return poster ?? null
 }

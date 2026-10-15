@@ -207,9 +207,33 @@ p.form-errors { padding-left: 0; }
 .nearby-item { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; }
 .nearby-item p { margin: 2px 0 0; font-size: .88rem; }
 .nearby-score { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: .88rem; }
-.dot-map { width: 100%; height: auto; background: radial-gradient(circle at 60% 40%, #ffb54710, transparent 70%); }
-.dot { fill: var(--amber); opacity: .7; }
-.dot-me { fill: #f4e9dc; stroke: var(--curtain); stroke-width: 3; }
+/* Map (MapLibre): sticky beside the list, above it on narrow screens. */
+.nearby-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 28px; }
+@media (max-width: 860px) { .nearby-split { grid-template-columns: 1fr; gap: 16px; } }
+.nearby-map { position: sticky; top: 76px; align-self: start; }
+.cinema-map {
+  height: min(72vh, 640px); border-radius: var(--card-radius); overflow: hidden;
+  border: 1px solid var(--line); background: #130d0a;
+}
+@media (max-width: 860px) {
+  .nearby-map { position: static; order: -1; }
+  .cinema-map { height: 52vh; }
+}
+.map-me {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--paper);
+  border: 3px solid var(--ticket-red); box-shadow: 0 0 0 6px #a8231b44;
+}
+.cinema-map .maplibregl-popup-content {
+  background: var(--paper); color: var(--ink); border-radius: 10px; padding: 10px 12px;
+  box-shadow: 0 10px 24px #0009; font-family: var(--body);
+}
+.cinema-map .maplibregl-popup-tip { border-top-color: var(--paper); border-bottom-color: var(--paper); }
+.cinema-map .maplibregl-popup-close-button { color: var(--ink-soft); font-size: 18px; padding: 0 6px; }
+.map-popup { display: flex; flex-direction: column; gap: 2px; color: var(--ink); text-decoration: none; font-size: .82rem; }
+.map-popup strong { font-family: var(--display); font-size: 1rem; padding-right: 14px; }
+.map-popup span { color: var(--ink-soft); }
+.map-popup em { color: var(--ink-soft); font-size: .72rem; }
+.map-popup:hover strong { color: var(--ticket-red); }
 
 /* States */
 .empty-state { text-align: center; padding: 64px 16px; }

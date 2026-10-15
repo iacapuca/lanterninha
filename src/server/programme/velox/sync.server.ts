@@ -16,7 +16,7 @@ import { timeZoneOf } from '~/lib/domain'
 import { db } from '../../db/client.server'
 import { cinema, film, providerCity, providerTheater, room, showtime } from '../../db/schema.server'
 import { velox, type VeloxCine } from './api.server'
-import { canWrite, chunk, formatHint, mapLimit, nameTokens, projectionHint, roomNumber, soundHint } from '../shared.server'
+import { canWrite, chunk, formatHint, localDay, mapLimit, nameTokens, projectionHint, roomNumber, soundHint, zonedTime } from '../shared.server'
 
 const DAY = 24 * 60 * 60 * 1000
 // Venue refresh costs ~3 subrequests per city (fetch, candidates, one batch)
@@ -153,30 +153,6 @@ async function refreshVenues() {
 }
 
 // ---------- 3. sessions ----------
-
-/** The calendar day `offset` days from now in `tz`, as YYYY-MM-DD. */
-function localDay(tz: string, offset: number) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(Date.now() + offset * DAY))
-}
-
-/** The wall-clock "day + time" in `tz`, as a real Date. */
-function zonedTime(tz: string, day: string, time: string) {
-  // Wall clock misread as UTC, then corrected by the difference the time zone
-  // makes when the same instant is rendered in `tz`.
-  const asUtc = Date.parse(`${day}T${time}:00Z`)
-  const [renderedDay, renderedTime] = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-    .format(new Date(asUtc))
-    .split(', ')
-  return new Date(asUtc - (Date.parse(`${renderedDay}T${renderedTime}:00Z`) - asUtc))
-}
 
 async function refreshSessions(theater: typeof providerTheater.$inferSelect, state: State) {
   const cinemaId = theater.cinemaId!

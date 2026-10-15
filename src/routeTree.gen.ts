@@ -16,6 +16,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as CinemasIndexRouteImport } from './routes/cinemas/index'
 import { Route as CinemasCinemaIdRouteImport } from './routes/cinemas/$cinemaId'
+import { Route as PostersFilmIdRouteImport } from './routes/posters/$filmId'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
 import { Route as UsersUsernameRouteImport } from './routes/users/$username'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -57,6 +58,11 @@ const CinemasCinemaIdRoute = CinemasCinemaIdRouteImport.update({
   path: '/cinemas/$cinemaId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostersFilmIdRoute = PostersFilmIdRouteImport.update({
+  id: '/posters/$filmId',
+  path: '/posters/$filmId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsIndexRoute = RoomsIndexRouteImport.update({
   id: '/rooms/',
   path: '/rooms/',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas': typeof CinemasIndexRoute
   '/rooms': typeof RoomsIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
+  '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/cinemas/$cinemaId'
+    | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
     | '/rooms/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/cinemas/$cinemaId'
+    | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas'
     | '/rooms'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/cinemas/$cinemaId'
+    | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
     | '/rooms/'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CinemasCinemaIdRoute: typeof CinemasCinemaIdRoute
+  PostersFilmIdRoute: typeof PostersFilmIdRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
   CinemasIndexRoute: typeof CinemasIndexRoute
   RoomsIndexRoute: typeof RoomsIndexRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CinemasCinemaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/posters/$filmId': {
+      id: '/posters/$filmId'
+      path: '/posters/$filmId'
+      fullPath: '/posters/$filmId'
+      preLoaderRoute: typeof PostersFilmIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms/': {
       id: '/rooms/'
       path: '/rooms'
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   CinemasCinemaIdRoute: CinemasCinemaIdRoute,
+  PostersFilmIdRoute: PostersFilmIdRoute,
   UsersUsernameRoute: UsersUsernameRoute,
   CinemasIndexRoute: CinemasIndexRoute,
   RoomsIndexRoute: RoomsIndexRoute,

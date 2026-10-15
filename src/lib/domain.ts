@@ -86,7 +86,7 @@ export const ROOM_FACT_FIELDS = Object.keys(ROOM_FACTS) as RoomFactField[]
 export type FactSource = 'ancine' | 'ingresso' | 'velox' | 'community'
 
 /** The ticketing portals Lanterninha syncs showtimes from. */
-export type Provider = 'ingresso' | 'velox'
+export type Provider = 'ingresso' | 'velox' | 'somosviva'
 
 export type Cinema = {
   id: string

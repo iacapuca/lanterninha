@@ -145,6 +145,15 @@ extracts them:
 client currently extracts from the live portal, so upstream template changes
 surface quickly.
 
+**Somos Viva (Cine Apipucos).** Parque Apipucos's free open-air cinema publishes
+its programme through the public calendar embedded on
+apipucos.somosviva.com.br (`calendario.somosviva.com.br/api/events`). The
+endpoint has no location or date filter and inlines posters as base64, so the
+sync (`src/server/programme/somosviva/`) pages through it 50 events at a time,
+keeps only Apipucos "Cinema" events, and runs at most every 6 h on the `*/30`
+trigger. Posters are stored once in `film_poster` and served from
+`/posters/<film id>`. The venue is linked to its ANCINE cinema by hand.
+
 Room details resolve **community vote > provider > ANCINE name**. Rooms and
 cinemas show an "Em cartaz" programme linking to the provider's checkout, with
 times in the cinema's own time zone.

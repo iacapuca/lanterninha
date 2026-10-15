@@ -1,7 +1,7 @@
 // D1 (SQLite) schema. Auth tables follow Better Auth's model (with the
 // `username` plugin); TypeScript keys must keep Better Auth's field names.
 import { sql } from 'drizzle-orm'
-import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { blob, index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import type { FactSource, Format, Projection, Provider, RoomFactField, Sound, State, Tag } from '~/lib/domain'
 
 const timestamps = {
@@ -203,8 +203,8 @@ export const providerTheater = sqliteTable(
     provider: text('provider').$type<Provider>().notNull(),
     cityId: text('city_id').notNull(),
     cinemaId: text('cinema_id').references(() => cinema.id, { onDelete: 'set null' }),
-    /** How the ANCINE cinema was matched: CNPJ, proximity, or shared name tokens. */
-    matchedBy: text('matched_by').$type<'cnpj' | 'location' | 'name'>(),
+    /** How the ANCINE cinema was matched: CNPJ, proximity, shared name tokens, or by hand (single-venue sources). */
+    matchedBy: text('matched_by').$type<'cnpj' | 'location' | 'name' | 'manual'>(),
     name: text('name').notNull(),
     cnpj: text('cnpj'),
     lat: real('lat'),
@@ -229,6 +229,18 @@ export const film = sqliteTable('film', {
   posterUrl: text('poster_url'),
   siteUrl: text('site_url'),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+/**
+ * Posters for providers that only publish them inline (Somos Viva sends base64
+ * data URLs), served from /posters/<film id>. Deleted with their film.
+ */
+export const filmPoster = sqliteTable('film_poster', {
+  filmId: text('film_id')
+    .primaryKey()
+    .references(() => film.id, { onDelete: 'cascade' }),
+  contentType: text('content_type').notNull(),
+  data: blob('data', { mode: 'buffer' }).$type<Uint8Array>().notNull(),
 })
 
 export const showtime = sqliteTable(

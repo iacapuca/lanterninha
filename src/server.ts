@@ -4,6 +4,7 @@
 // never delays the other's.
 import { createServerEntry, createStartHandler, defaultStreamHandler } from '@tanstack/react-start/server'
 import { syncIngresso } from './server/programme/ingresso/sync.server'
+import { syncSomosViva } from './server/programme/somosviva/sync.server'
 import { syncVelox } from './server/programme/velox/sync.server'
 
 const app = createServerEntry({ fetch: createStartHandler(defaultStreamHandler) })
@@ -25,7 +26,11 @@ export default {
   // Awaited directly: scheduled handlers may run for minutes, while waitUntil work
   // can be cut off once the handler returns.
   async scheduled(event: ScheduledEvent) {
-    if (event.cron === VELOX_CRON) await syncVelox()
+    if (event.cron === VELOX_CRON) {
+      await syncVelox()
+      // Self-throttled to every 6 h; shares the */30 trigger rather than adding a cron.
+      await syncSomosViva()
+    }
     else await syncIngresso()
   },
 }

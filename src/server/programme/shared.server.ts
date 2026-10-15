@@ -65,3 +65,29 @@ export async function mapLimit<T, R>(items: readonly T[], limit: number, run: (i
   await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker))
   return results
 }
+
+const DAY = 24 * 60 * 60 * 1000
+
+/** The calendar day `offset` days from now in `tz`, as YYYY-MM-DD. */
+export function localDay(tz: string, offset: number) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(Date.now() + offset * DAY))
+}
+
+/** The wall-clock "day + time" in `tz`, as a real Date. */
+export function zonedTime(tz: string, day: string, time: string) {
+  // Wall clock misread as UTC, then corrected by the difference the time zone
+  // makes when the same instant is rendered in `tz`.
+  const asUtc = Date.parse(`${day}T${time}:00Z`)
+  const [renderedDay, renderedTime] = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+    .format(new Date(asUtc))
+    .split(', ')
+  return new Date(asUtc - (Date.parse(`${renderedDay}T${renderedTime}:00Z`) - asUtc))
+}
