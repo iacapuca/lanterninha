@@ -14,7 +14,7 @@
 import { z } from 'zod'
 
 const BASE = 'https://www.veloxtickets.com/Portal'
-const USER_AGENT = 'lanterninha/1.0 (+https://lanterninha.plpbs.workers.dev)'
+const USER_AGENT = 'lanterninha/1.0 (+https://lanterninha.review)'
 
 async function page(path: string): Promise<string> {
   const res = await fetch(`${BASE}${path}`, {

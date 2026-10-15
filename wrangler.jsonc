@@ -5,6 +5,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "./src/server.ts",
   "observability": { "enabled": true },
+  // lanterninha.review is canonical; www and *.workers.dev 301 to it (src/server.ts).
+  "routes": [
+    { "pattern": "lanterninha.review", "custom_domain": true },
+    { "pattern": "www.lanterninha.review", "custom_domain": true }
+  ],
   "vars": {
     "SLOW_QUERY_MS": "0",
     // Ingresso.com content API: our partnership id and how many theaters' sessions to refresh per run.

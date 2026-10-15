@@ -5,7 +5,7 @@ import { env } from 'cloudflare:workers'
 import { z } from 'zod'
 
 const BASE = 'https://api-content.ingresso.com/v0'
-const USER_AGENT = 'lanterninha/1.0 (+https://lanterninha.plpbs.workers.dev)'
+const USER_AGENT = 'lanterninha/1.0 (+https://lanterninha.review)'
 
 // Ingresso's CDN is Akamai, which answers 403 to production Worker egress —
 // while the same calls pass from a home connection and even from `wrangler dev

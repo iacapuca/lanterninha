@@ -8,9 +8,20 @@ import { syncVelox } from './server/programme/velox/sync.server'
 
 const app = createServerEntry({ fetch: createStartHandler(defaultStreamHandler) })
 const VELOX_CRON = '*/30 * * * *'
+const CANONICAL_HOST = 'lanterninha.review'
 
 export default {
-  fetch: app.fetch,
+  // One public address: the old workers.dev URL and www redirect, keeping path and query.
+  fetch(request: Request) {
+    const url = new URL(request.url)
+    if (url.hostname === `www.${CANONICAL_HOST}` || url.hostname.endsWith('.workers.dev')) {
+      url.protocol = 'https:'
+      url.hostname = CANONICAL_HOST
+      url.port = ''
+      return Response.redirect(url.toString(), 301)
+    }
+    return app.fetch(request)
+  },
   // Awaited directly: scheduled handlers may run for minutes, while waitUntil work
   // can be cut off once the handler returns.
   async scheduled(event: ScheduledEvent) {

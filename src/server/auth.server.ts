@@ -14,6 +14,11 @@ import { account, session, user, verification } from './db/schema.server'
  */
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
+  // Derived per request, but only for our own hosts (local dev and preview included).
+  baseURL: {
+    allowedHosts: ['lanterninha.review', 'localhost:*', '127.0.0.1:*'],
+    fallback: 'https://lanterninha.review',
+  },
   database: drizzleAdapter(db, {
     provider: 'sqlite',
     schema: { user, session, account, verification },

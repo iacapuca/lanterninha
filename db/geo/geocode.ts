@@ -10,7 +10,7 @@ import { loadOpenComplexes, type AncineComplex } from '../ancine/parse.ts'
 import { distanceKm, findMunicipality, stateName } from './municipalities.ts'
 
 const CACHE = 'db/geo/geocode-cache.json'
-const USER_AGENT = 'lanterninha-importer/1.0 (+https://lanterninha.plpbs.workers.dev)'
+const USER_AGENT = 'lanterninha-importer/1.0 (+https://lanterninha.review)'
 const MAX_KM_FROM_CITY = 60
 
 type Hit = { lat: number; lng: number; via: 'address' | 'name'; label: string }

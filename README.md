@@ -6,7 +6,8 @@ the row the community likes best.
 
 Built with **TanStack Start** (React 19, file-based TanStack Router, typed
 server functions, streaming SSR), **Better Auth**, **Drizzle ORM** and **D1**,
-deployed to **Cloudflare Workers**.
+deployed to **Cloudflare Workers** at https://lanterninha.review (www and the
+old `lanterninha.plpbs.workers.dev` redirect there).
 
 The code is in English; the UI copy is in pt-BR.
 
