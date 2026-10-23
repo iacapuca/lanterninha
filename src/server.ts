@@ -6,6 +6,7 @@ import { createServerEntry, createStartHandler, defaultStreamHandler } from '@ta
 import { syncIngresso } from './server/programme/ingresso/sync.server'
 import { syncFundarpe } from './server/programme/fundarpe/sync.server'
 import { syncSomosViva } from './server/programme/somosviva/sync.server'
+import { enrichFilms } from './server/programme/enrich.server'
 import { syncVelox } from './server/programme/velox/sync.server'
 
 const app = createServerEntry({ fetch: createStartHandler(defaultStreamHandler) })
@@ -33,6 +34,8 @@ export default {
       await syncSomosViva()
       // Every 3 h, same reasoning.
       await syncFundarpe()
+      // Last: it picks up the films the syncs above just added.
+      await enrichFilms().catch((error) => console.error('tmdb enrich failed', error))
     } else await syncIngresso()
   },
 }

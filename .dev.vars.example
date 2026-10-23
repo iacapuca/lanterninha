@@ -2,3 +2,6 @@
 BETTER_AUTH_SECRET=dev-only-secret-change-me-dev-only-secret
 # Artificial latency (ms) for the streamed sections, so streaming is visible in dev.
 SLOW_QUERY_MS=700
+# TMDB "API Read Access Token" (themoviedb.org/settings/api): film autocomplete and hover cards.
+# In production: wrangler secret put TMDB_TOKEN
+TMDB_TOKEN=

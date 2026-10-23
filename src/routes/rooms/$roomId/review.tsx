@@ -6,6 +6,7 @@ import { createReview, getOwnReview, updateReview } from '~/functions/reviews.fu
 import { getRoom } from '~/functions/rooms.functions'
 import { CRITERIA, CRITERION_IDS, TAGS, type Criterion, type Tag } from '~/lib/domain'
 import { newReviewSchema } from '~/lib/schemas'
+import { FilmInput } from '~/components/film-input'
 import { LanternPicker } from '~/components/lanterns'
 import { Button } from '~/components/ui/button'
 
@@ -173,14 +174,10 @@ function ReviewPage() {
             maxLength={2}
           />
         </label>
+        {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- wraps FilmInput's <input> */}
         <label className="field field-grow">
           <span>Filme que você viu</span>
-          <input
-            value={draft.film}
-            onChange={(e) => update({ film: e.target.value })}
-            placeholder="Ainda Estou Aqui"
-            maxLength={120}
-          />
+          <FilmInput value={draft.film} onChange={(film) => update({ film })} placeholder="Ainda Estou Aqui" />
         </label>
       </div>
 

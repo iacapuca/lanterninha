@@ -12,6 +12,7 @@ interface __BaseEnv_Env {
 	BETTER_AUTH_SECRET: string;
 	SLOW_QUERY_MS: string;
 	FUNDARPE_API_KEY: string;
+	TMDB_TOKEN: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
@@ -24,7 +25,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "INGRESSO_PARTNERSHIP" | "INGRESSO_THEATER_BATCH" | "INGRESSO_PROXY_URL" | "VELOX_THEATER_BATCH" | "VELOX_CONCURRENCY" | "BETTER_AUTH_SECRET" | "SLOW_QUERY_MS" | "FUNDARPE_API_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "INGRESSO_PARTNERSHIP" | "INGRESSO_THEATER_BATCH" | "INGRESSO_PROXY_URL" | "VELOX_THEATER_BATCH" | "VELOX_CONCURRENCY" | "BETTER_AUTH_SECRET" | "SLOW_QUERY_MS" | "FUNDARPE_API_KEY" | "TMDB_TOKEN">> {}
 }
 declare module "*.txt" {
 	const value: string;

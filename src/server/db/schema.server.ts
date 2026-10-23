@@ -241,6 +241,16 @@ export const film = sqliteTable('film', {
     .default(sql`'[]'`),
   posterUrl: text('poster_url'),
   siteUrl: text('site_url'),
+  /** From TMDB (src/server/programme/enrich.server.ts); null until matched. */
+  tmdbId: integer('tmdb_id'),
+  imdbId: text('imdb_id'),
+  overview: text('overview'),
+  tagline: text('tagline'),
+  director: text('director'),
+  tmdbRating: real('tmdb_rating'),
+  backdropPath: text('backdrop_path'),
+  /** Last TMDB lookup (hit or miss), so misses are retried only now and then. */
+  enrichedAt: integer('enriched_at', { mode: 'timestamp_ms' }),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
 

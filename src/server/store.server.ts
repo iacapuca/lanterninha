@@ -582,7 +582,22 @@ export async function getProgramme(target: { roomId: string } | { cinemaId: stri
     columns: { id: true, localDay: true, localTime: true, roomName: true, types: true, price: true, checkoutUrl: true },
     with: {
       film: {
-        columns: { id: true, title: true, posterUrl: true, durationMinutes: true, contentRating: true, genres: true },
+        columns: {
+          id: true,
+          title: true,
+          posterUrl: true,
+          durationMinutes: true,
+          contentRating: true,
+          genres: true,
+          tmdbId: true,
+          imdbId: true,
+          overview: true,
+          tagline: true,
+          director: true,
+          tmdbRating: true,
+          backdropPath: true,
+          releaseYear: true,
+        },
       },
       room: { columns: { id: true, name: true } },
     },

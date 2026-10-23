@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { FilmTitle, type FilmCardData } from '~/components/film-card'
 import type { Provider } from '~/lib/domain'
 
 type Showtime = {
@@ -10,14 +11,7 @@ type Showtime = {
   types: string[]
   price: number | null
   checkoutUrl: string | null
-  film: {
-    id: string
-    title: string
-    posterUrl: string | null
-    durationMinutes: number | null
-    contentRating: string | null
-    genres: string[]
-  }
+  film: FilmCardData & { id: string }
   room: { id: string; name: string } | null
 }
 
@@ -143,7 +137,7 @@ export function Programme({ linked, providers, today, showtimes, showRoom = fals
                       <div className="h-24 w-16 shrink-0 rounded-md bg-ink/10" aria-hidden="true" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-heading text-base leading-tight font-bold">{film.title}</p>
+                      <FilmTitle film={film} />
                       <p className="mt-0.5 text-xs text-ink/60">
                         {[film.contentRating, film.durationMinutes && `${film.durationMinutes} min`, film.genres[0]]
                           .filter(Boolean)

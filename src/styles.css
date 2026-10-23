@@ -625,10 +625,54 @@
     color: #1b1006;
     border-color: var(--amber);
   }
+  .film-input {
+    position: relative;
+  }
+  .film-options {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(100% + 4px);
+    z-index: 20;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.4);
+  }
+  .film-options li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .film-options li[aria-selected='true'],
+  .film-options li:hover {
+    background: color-mix(in srgb, var(--amber) 18%, transparent);
+  }
+  .film-options img,
+  .film-options-noposter {
+    width: 28px;
+    height: 42px;
+    flex: none;
+    border-radius: 4px;
+    object-fit: cover;
+    background: var(--line);
+  }
+  .film-options small {
+    display: block;
+    color: var(--text-muted);
+  }
   .form-row {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    /* Labels can wrap to different heights; keep the inputs on one line. */
+    align-items: flex-end;
   }
   .form-row .field:not(.field-grow) {
     flex: 0 0 160px;
@@ -669,8 +713,13 @@
     font-size: 0.85rem;
     color: var(--text-muted);
   }
+  /* Undo the full-width text-input look from the global input rule. */
   .checkbox-field input {
-    margin-top: 3px;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin-top: 2px;
     accent-color: var(--amber);
   }
   .notice {
