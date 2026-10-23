@@ -16,7 +16,7 @@ import type {
 import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
 import type { ExploreSearch, NewReview, UpdateReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, filmPoster, review, room, roomFact, showtime } from './db/schema.server'
+import { cinema, film, filmPoster, review, room, roomFact, showtime } from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -393,6 +393,7 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
       ...input.criteria,
       row: input.row,
       film: input.film,
+      filmTmdbId: input.film ? input.filmTmdbId : null,
       body: input.body,
       tags: input.tags,
       day: saoPauloDay.format(now),
@@ -418,6 +419,7 @@ export async function getOwnReview(userId: string, id: string) {
     criteria: { picture, sound, comfort, cleanliness },
     row: found.row,
     film: found.film,
+    filmTmdbId: found.filmTmdbId,
     body: found.body,
     tags: found.tags,
   }
@@ -432,6 +434,7 @@ export async function updateReview(userId: string, input: UpdateReview) {
       ...input.criteria,
       row: input.row,
       film: input.film,
+      filmTmdbId: input.film ? input.filmTmdbId : null,
       body: input.body,
       tags: input.tags,
     })
@@ -612,4 +615,12 @@ export async function getFilmPoster(filmId: string) {
     .where(eq(filmPoster.filmId, filmId))
     .limit(1)
   return poster ?? null
+}
+
+/** Is this TMDB id one of ours? Keeps the hover-card endpoint from being an open TMDB proxy. */
+export async function isKnownTmdbId(tmdbId: number) {
+  const [inFilms] = await db.select({ id: film.id }).from(film).where(eq(film.tmdbId, tmdbId)).limit(1)
+  if (inFilms) return true
+  const [inReviews] = await db.select({ id: review.id }).from(review).where(eq(review.filmTmdbId, tmdbId)).limit(1)
+  return !!inReviews
 }

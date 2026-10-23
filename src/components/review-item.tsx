@@ -16,6 +16,7 @@ import {
 } from '~/components/ui/dialog'
 import { CRITERIA, CRITERION_IDS, type Review, type ReviewWithRoom } from '~/lib/domain'
 import { formatDate, formatRating } from '~/lib/format'
+import { ReviewFilm } from './film-card'
 import { Lanterns } from './lanterns'
 import { Ticket, ticketSerial } from './ticket'
 
@@ -55,7 +56,7 @@ export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
             </span>
             @{review.username}
           </Link>
-          {review.film && <span className="review-film">🎬 {review.film}</span>}
+          {review.film && <ReviewFilm title={review.film} tmdbId={review.filmTmdbId} />}
         </header>
 
         {context && (

@@ -172,6 +172,8 @@ export const review = sqliteTable(
     cleanliness: integer('cleanliness').notNull(),
     row: text('row'),
     film: text('film'),
+    /** TMDB id when the film was picked from the autocomplete; drives the hover card. */
+    filmTmdbId: integer('film_tmdb_id'),
     body: text('body').notNull(),
     tags: text('tags', { mode: 'json' })
       .$type<Tag[]>()

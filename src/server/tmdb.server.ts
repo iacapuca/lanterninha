@@ -16,6 +16,10 @@ export type TmdbSuggestion = {
 
 export type TmdbDetails = {
   tmdbId: number
+  title: string
+  year: number | null
+  runtime: number | null
+  genres: string[]
   imdbId: string | null
   overview: string | null
   tagline: string | null
@@ -79,6 +83,10 @@ export async function searchMovies(query: string, year?: number | null): Promise
 
 type DetailsResponse = {
   id: number
+  title: string
+  release_date?: string
+  runtime?: number | null
+  genres?: Array<{ name: string }>
   overview?: string
   tagline?: string
   vote_average?: number
@@ -93,6 +101,10 @@ export async function getMovieDetails(tmdbId: number): Promise<TmdbDetails> {
   const d = await tmdb<DetailsResponse>(`/movie/${tmdbId}`, { append_to_response: 'credits,external_ids' })
   return {
     tmdbId: d.id,
+    title: d.title,
+    year: yearOf(d.release_date),
+    runtime: d.runtime || null,
+    genres: d.genres?.map((g) => g.name) ?? [],
     imdbId: d.external_ids?.imdb_id || null,
     overview: d.overview || null,
     tagline: d.tagline || null,

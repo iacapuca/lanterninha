@@ -6,7 +6,8 @@ type Suggestion = Awaited<ReturnType<typeof searchFilms>>[number]
 
 type Props = {
   value: string
-  onChange: (value: string) => void
+  /** `tmdbId` is set when the text came from picking a suggestion, null when typed. */
+  onChange: (value: string, tmdbId: number | null) => void
   placeholder?: string
 }
 
@@ -45,7 +46,7 @@ export function FilmInput({ value, onChange, placeholder }: Props) {
   function pick(option: Suggestion) {
     // The Brazilian title, as people say it at the box office.
     picked.current = option.title
-    onChange(option.title)
+    onChange(option.title, option.tmdbId)
     setOpen(false)
   }
 
@@ -57,7 +58,7 @@ export function FilmInput({ value, onChange, placeholder }: Props) {
         value={value}
         onChange={(e) => {
           picked.current = null
-          onChange(e.target.value)
+          onChange(e.target.value, null)
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}

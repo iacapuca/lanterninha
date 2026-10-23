@@ -158,6 +158,8 @@ export type Review = {
   criteria: Record<Criterion, number> // 1 – 5
   row: string | null
   film: string | null
+  /** Set when the film came from the TMDB autocomplete. */
+  filmTmdbId: number | null
   body: string
   tags: Tag[]
   createdAt: string // ISO

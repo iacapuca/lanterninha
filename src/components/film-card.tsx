@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useServerFn } from '@tanstack/react-start'
+import { getFilmCard } from '~/functions/films.functions'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '~/components/ui/hover-card'
 
 export type FilmCardData = {
@@ -24,14 +26,57 @@ export function letterboxdUrl(film: Pick<FilmCardData, 'title' | 'tmdbId' | 'imd
   return `https://letterboxd.com/search/${encodeURIComponent(film.title)}/`
 }
 
+function FilmCardBody({ film }: { film: FilmCardData }) {
+  const meta = [film.releaseYear, film.durationMinutes && `${film.durationMinutes} min`, film.genres[0]].filter(Boolean)
+  return (
+    <>
+      {film.backdropPath && (
+        <img
+          src={`https://image.tmdb.org/t/p/w500${film.backdropPath}`}
+          alt=""
+          loading="lazy"
+          className="aspect-video w-full object-cover"
+        />
+      )}
+      <div className="flex flex-col gap-2 p-3">
+        <div>
+          <p className="font-heading text-lg leading-tight font-bold">{film.title}</p>
+          {film.tagline && <p className="text-xs text-ink/60 italic">{film.tagline}</p>}
+        </div>
+        <p className="text-xs text-ink/70">
+          {meta.join(' · ')}
+          {film.director && ` · Direção de ${film.director}`}
+        </p>
+        {film.overview && <p className="line-clamp-5 text-sm leading-snug">{film.overview}</p>}
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+          {film.tmdbRating ? (
+            <span title="Nota média no TMDB">⭐ {film.tmdbRating.toFixed(1).replace('.', ',')}/10</span>
+          ) : (
+            <span />
+          )}
+          <a
+            href={letterboxdUrl(film)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-ink px-3 py-1 font-semibold text-paper no-underline"
+          >
+            Ver no Letterboxd ↗
+          </a>
+        </div>
+        {film.tmdbId && <p className="text-[0.65rem] text-ink/40">Dados: TMDB</p>}
+      </div>
+    </>
+  )
+}
+
+const CARD_CLASS = 'w-80! overflow-hidden bg-paper p-0 text-ink'
+
 /**
  * A film title that opens a small card on hover (and on tap, since touch has no hover):
  * backdrop, synopsis, director, TMDB score and a link to Letterboxd.
  */
 export function FilmTitle({ film }: { film: FilmCardData }) {
   const [open, setOpen] = useState(false)
-  const meta = [film.releaseYear, film.durationMinutes && `${film.durationMinutes} min`, film.genres[0]].filter(Boolean)
-
   return (
     <HoverCard open={open} onOpenChange={setOpen} openDelay={200} closeDelay={120}>
       <HoverCardTrigger asChild>
@@ -43,42 +88,47 @@ export function FilmTitle({ film }: { film: FilmCardData }) {
           {film.title}
         </button>
       </HoverCardTrigger>
-      <HoverCardContent side="top" className="w-80! overflow-hidden bg-paper p-0 text-ink">
-        {film.backdropPath && (
-          <img
-            src={`https://image.tmdb.org/t/p/w500${film.backdropPath}`}
-            alt=""
-            loading="lazy"
-            className="aspect-video w-full object-cover"
-          />
+      <HoverCardContent side="top" className={CARD_CLASS}>
+        <FilmCardBody film={film} />
+      </HoverCardContent>
+    </HoverCard>
+  )
+}
+
+/** The film a review mentions: its card is fetched from TMDB the first time it opens. */
+export function ReviewFilm({ title, tmdbId }: { title: string; tmdbId: number | null }) {
+  const [open, setOpen] = useState(false)
+  const [film, setFilm] = useState<FilmCardData | null | undefined>(undefined)
+  const load = useServerFn(getFilmCard)
+
+  function toggle(next: boolean) {
+    setOpen(next)
+    if (next && tmdbId && film === undefined) {
+      load({ data: { tmdbId } })
+        .then(setFilm)
+        .catch(() => setFilm(null))
+    }
+  }
+
+  // Free-typed titles have no TMDB id, so there is nothing to show.
+  if (!tmdbId) return <span className="review-film">🎬 {title}</span>
+  return (
+    <HoverCard open={open} onOpenChange={toggle} openDelay={200} closeDelay={120}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={() => toggle(!open)}
+          className="review-film cursor-help decoration-dotted underline-offset-4 hover:underline"
+        >
+          🎬 {title}
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="top" className={CARD_CLASS}>
+        {film ? (
+          <FilmCardBody film={film} />
+        ) : (
+          <p className="p-3 text-sm text-ink/60">{film === null ? 'Sem detalhes deste filme.' : 'Carregando…'}</p>
         )}
-        <div className="flex flex-col gap-2 p-3">
-          <div>
-            <p className="font-heading text-lg leading-tight font-bold">{film.title}</p>
-            {film.tagline && <p className="text-xs text-ink/60 italic">{film.tagline}</p>}
-          </div>
-          <p className="text-xs text-ink/70">
-            {meta.join(' · ')}
-            {film.director && ` · Direção de ${film.director}`}
-          </p>
-          {film.overview && <p className="line-clamp-5 text-sm leading-snug">{film.overview}</p>}
-          <div className="mt-1 flex items-center justify-between gap-2 text-xs">
-            {film.tmdbRating ? (
-              <span title="Nota média no TMDB">⭐ {film.tmdbRating.toFixed(1).replace('.', ',')}/10</span>
-            ) : (
-              <span />
-            )}
-            <a
-              href={letterboxdUrl(film)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-ink px-3 py-1 font-semibold text-paper no-underline"
-            >
-              Ver no Letterboxd ↗
-            </a>
-          </div>
-          {film.tmdbId && <p className="text-[0.65rem] text-ink/40">Dados: TMDB</p>}
-        </div>
       </HoverCardContent>
     </HoverCard>
   )

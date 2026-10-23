@@ -79,6 +79,7 @@ export const newReviewSchema = z.object({
       .default(null),
   ),
   film: z.preprocess(emptyToUndefined, z.string().trim().max(120).nullable().default(null)),
+  filmTmdbId: z.number().int().positive().nullable().default(null),
   body: z.string().trim().min(10, 'Conte um pouco mais (mín. 10 caracteres)').max(2000),
   tags: z.array(z.enum(TAGS)).max(5, 'No máximo 5 etiquetas').default([]),
 })

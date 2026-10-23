@@ -51,6 +51,7 @@ type Draft = {
   criteria: Record<Criterion, number>
   row: string
   film: string
+  filmTmdbId: number | null
   body: string
   tags: Tag[]
 }
@@ -60,6 +61,7 @@ const EMPTY_DRAFT: Draft = {
   criteria: { picture: 0, sound: 0, comfort: 0, cleanliness: 0 },
   row: '',
   film: '',
+  filmTmdbId: null,
   body: '',
   tags: [],
 }
@@ -177,7 +179,11 @@ function ReviewPage() {
         {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- wraps FilmInput's <input> */}
         <label className="field field-grow">
           <span>Filme que você viu</span>
-          <FilmInput value={draft.film} onChange={(film) => update({ film })} placeholder="Ainda Estou Aqui" />
+          <FilmInput
+            value={draft.film}
+            onChange={(film, filmTmdbId) => update({ film, filmTmdbId })}
+            placeholder="Ainda Estou Aqui"
+          />
         </label>
       </div>
 
