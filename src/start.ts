@@ -1,4 +1,4 @@
-import { createMiddleware, createStart } from '@tanstack/react-start'
+import { createCsrfMiddleware, createMiddleware, createStart } from '@tanstack/react-start'
 import { setResponseHeaders } from '@tanstack/react-start/server'
 
 // Runs for every server request: document SSR, server routes and server functions.
@@ -13,6 +13,15 @@ const securityHeaders = createMiddleware().server(async ({ next }) => {
   return next()
 })
 
+// Writes from other sites are refused: server functions and the photo upload
+// route accept only same-origin requests (Sec-Fetch-Site, else Origin, else
+// Referer). The SameSite=Lax session cookie already keeps cross-site POSTs
+// signed out; this doesn't depend on it. Better Auth checks /api/auth itself.
+const csrf = createCsrfMiddleware({
+  filter: ({ handlerType, pathname, request }) =>
+    handlerType === 'serverFn' || (pathname === '/api/photos' && request.method !== 'GET'),
+})
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeaders],
+  requestMiddleware: [csrf, securityHeaders],
 }))
