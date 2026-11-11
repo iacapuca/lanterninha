@@ -20,6 +20,8 @@ const EVENTS = {
   search_empty: ['q', 'city', 'state', 'format'],
   review_marked_helpful: ['reviewId'],
   user_followed: [],
+  photo_uploaded: ['roomId'],
+  photo_reported: [],
 } as const satisfies Record<string, readonly string[]>
 
 export type AnalyticsEvent = keyof typeof EVENTS

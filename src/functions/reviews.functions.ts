@@ -3,11 +3,13 @@ import { z } from 'zod'
 import { earnedBadges } from '~/lib/domain'
 import { newReviewSchema, roomFactVoteSchema, updateReviewSchema } from '~/lib/schemas'
 import { track } from '~/server/analytics.server'
+import { deleteImage } from '~/server/photos.server'
 import * as store from '~/server/store.server'
 import { requireSession } from './auth.middleware'
 
 const ERRORS = {
   'unknown-room': 'Essa sala não existe.',
+  'fact-not-applicable': 'Esse detalhe não se aplica a esta sala.',
   duplicate: 'Você já avaliou esta sala hoje. Volte depois da próxima sessão!',
 } as const
 
@@ -30,7 +32,7 @@ export const createReview = createServerFn({ method: 'POST' })
     return { id: result.id, roomId: result.roomId }
   })
 
-/** Fill in a room detail (format, projection or sound); returns any badges it unlocked. */
+/** Fill in a room detail (format, projection, sound…); returns any badges it unlocked. */
 export const voteRoomFact = createServerFn({ method: 'POST' })
   .middleware([requireSession])
   .validator(roomFactVoteSchema)
@@ -70,7 +72,8 @@ export const deleteReview = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const deleted = await store.deleteReview(context.userId, data.id)
     if (!deleted) throw new Error('Avaliação não encontrada.')
-    return deleted
+    if (deleted.photoKey) await deleteImage(deleted.photoKey)
+    return { id: deleted.id, roomId: deleted.roomId }
   })
 
 /** The review form calls this once, when someone starts typing a new review (not an edit). */

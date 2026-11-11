@@ -31,6 +31,8 @@
   // Cloudflare Email Service: verification and password-reset emails from the domain.
   // Product events (src/server/analytics.server.ts); query with the Analytics Engine SQL API.
   "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "lanterninha_events" }],
+  // Seat-view photos from reviews (src/server/photos.server.ts), served through /photos/<id>.
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "lanterninha-photos" }],
   "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["nao-responda@lanterninha.review"] }],
   "d1_databases": [
     {

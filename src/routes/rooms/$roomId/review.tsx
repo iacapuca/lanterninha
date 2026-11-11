@@ -1,10 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { Link, createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
+import { removeSeatPhoto } from '~/functions/photos.functions'
 import { createReview, getOwnReview, trackReviewDraftStarted, updateReview } from '~/functions/reviews.functions'
 import { getRoom } from '~/functions/rooms.functions'
-import { CRITERIA, CRITERION_IDS, TAGS, type Criterion, type Tag } from '~/lib/domain'
+import { toast } from 'sonner'
+import {
+  CRITERIA,
+  CRITERION_IDS,
+  photoUrl,
+  SEAT_POSITIONS,
+  SEAT_POSITION_IDS,
+  TAGS,
+  type Criterion,
+  type SeatPhoto,
+  type SeatPosition,
+  type Tag,
+} from '~/lib/domain'
+import { shrinkPhoto, uploadPhoto, type ShrunkPhoto } from '~/lib/photo-resize'
 import { newReviewSchema } from '~/lib/schemas'
 import { FilmInput } from '~/components/film-input'
 import { LanternPicker } from '~/components/lanterns'
@@ -50,6 +64,7 @@ type Draft = {
   rating: number
   criteria: Record<Criterion, number>
   row: string
+  seatPosition: SeatPosition | ''
   film: string
   filmTmdbId: number | null
   body: string
@@ -60,6 +75,7 @@ const EMPTY_DRAFT: Draft = {
   rating: 0,
   criteria: { picture: 0, sound: 0, comfort: 0, cleanliness: 0 },
   row: '',
+  seatPosition: '',
   film: '',
   filmTmdbId: null,
   body: '',
@@ -85,8 +101,13 @@ function ReviewPage() {
 
   const draftKey = `lanterninha:draft:${room.id}`
   const [draft, setDraft] = useState<Draft>(() =>
-    editing ? { ...editing, row: editing.row ?? '', film: editing.film ?? '' } : readDraft(draftKey),
+    editing
+      ? { ...editing, row: editing.row ?? '', seatPosition: editing.seatPosition ?? '', film: editing.film ?? '' }
+      : readDraft(draftKey),
   )
+  // Photos aren't part of the localStorage draft: a file can't be stored there.
+  const [photo, setPhoto] = useState<PhotoChoice>(editing?.photo ? { kind: 'saved', photo: editing.photo } : null)
+  const removePhoto = useServerFn(removeSeatPhoto)
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -119,16 +140,30 @@ function ReviewPage() {
       setErrors([...new Set(parsed.error.issues.map((i) => i.message))])
       return
     }
+    if (photo && !parsed.data.row) {
+      setErrors(['Diga a fileira para adicionar a vista da poltrona.'])
+      return
+    }
     setErrors([])
     setSubmitting(true)
     try {
+      let reviewId: string
       if (editing) {
-        await updateReviewFn({ data: { ...parsed.data, id: editing.id } })
+        reviewId = (await updateReviewFn({ data: { ...parsed.data, id: editing.id } })).id
       } else {
-        await createReviewFn({ data: parsed.data })
+        reviewId = (await createReviewFn({ data: parsed.data })).id
         try {
           localStorage.removeItem(draftKey)
         } catch {}
+      }
+      // The review is saved either way; a failed photo only gets a warning.
+      try {
+        if (photo?.kind === 'new') await uploadPhoto(reviewId, photo.shrunk)
+        else if (!photo && editing?.photo) await removePhoto({ data: { reviewId } })
+      } catch (err) {
+        toast.error('A avaliação foi salva, mas a foto não.', {
+          description: err instanceof Error ? err.message : undefined,
+        })
       }
       await router.invalidate()
       await navigate({ to: '/rooms/$roomId', params: { roomId: room.id }, search: { reviews: 'recent' } })
@@ -196,6 +231,29 @@ function ReviewPage() {
         </label>
       </div>
 
+      <section className="seat-view-input">
+        <h2>
+          Vista da poltrona <span className="muted">(opcional)</span>
+        </h2>
+        <fieldset className="segmented">
+          <legend>Onde na fileira</legend>
+          {SEAT_POSITION_IDS.map((p) => (
+            <label key={p} className={draft.seatPosition === p ? 'active' : undefined}>
+              <input
+                type="radio"
+                name="seatPosition"
+                value={p}
+                checked={draft.seatPosition === p}
+                onChange={() => update({ seatPosition: p })}
+                className="sr-only"
+              />
+              {SEAT_POSITIONS[p]}
+            </label>
+          ))}
+        </fieldset>
+        <PhotoPicker value={photo} onChange={setPhoto} />
+      </section>
+
       <label className="field">
         <span>Sua avaliação</span>
         <textarea
@@ -245,5 +303,67 @@ function ReviewPage() {
         </span>
       </div>
     </form>
+  )
+}
+
+type PhotoChoice = { kind: 'saved'; photo: SeatPhoto } | { kind: 'new'; shrunk: ShrunkPhoto } | null
+
+/** Pick, preview, swap or remove the seat photo; it's shrunk right away so the preview is what gets sent. */
+function PhotoPicker({ value, onChange }: { value: PhotoChoice; onChange: (next: PhotoChoice) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const preview = useMemo(
+    () => (value?.kind === 'new' ? URL.createObjectURL(value.shrunk.blob) : value ? photoUrl(value.photo.id) : null),
+    [value],
+  )
+  useEffect(() => () => void (preview?.startsWith('blob:') && URL.revokeObjectURL(preview)), [preview])
+
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy(true)
+    setError(null)
+    try {
+      onChange({ kind: 'new', shrunk: await shrinkPhoto(file) })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não deu para usar essa foto.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const input = <input type="file" accept="image/*" onChange={pick} className="sr-only" disabled={busy} />
+  return (
+    <div className="photo-picker">
+      {preview ? (
+        <figure>
+          <img src={preview} alt="Prévia da vista da sua poltrona" />
+          <figcaption>
+            <label className="link-button">
+              {input}
+              Trocar foto
+            </label>
+            <button type="button" className="link-button" onClick={() => onChange(null)}>
+              Remover
+            </button>
+          </figcaption>
+        </figure>
+      ) : (
+        <label className="photo-drop">
+          {input}
+          {busy ? 'Preparando a foto…' : '+ Foto da tela vista do seu lugar'}
+        </label>
+      )}
+      {error && (
+        <p className="form-errors" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="muted">
+        A tela como você a viu, sem pessoas em destaque. A localização e outros dados da foto são removidos antes do
+        envio.
+      </p>
+    </div>
   )
 }

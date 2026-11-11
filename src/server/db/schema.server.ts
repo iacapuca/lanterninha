@@ -2,7 +2,22 @@
 // `username` plugin); TypeScript keys must keep Better Auth's field names.
 import { sql } from 'drizzle-orm'
 import { blob, index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import type { FactSource, Format, Projection, Provider, RoomFactField, Sound, State, Tag } from '~/lib/domain'
+import type {
+  FactSource,
+  Format,
+  ImaxType,
+  PhotoStatus,
+  Projection,
+  Provider,
+  RoomFactField,
+  ScreenSize,
+  SeatPosition,
+  SeatType,
+  Sound,
+  State,
+  Tag,
+  ThreeD,
+} from '~/lib/domain'
 
 const timestamps = {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -24,6 +39,8 @@ export const user = sqliteTable('user', {
   image: text('image'),
   username: text('username').unique(),
   displayUsername: text('display_username'),
+  /** Can moderate reported photos (/admin/photos). Set by hand in D1. */
+  isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
   ...timestamps,
 })
 
@@ -122,6 +139,14 @@ export const room = sqliteTable(
     projectionSource: text('projection_source').$type<FactSource>(),
     sound: text('sound').$type<Sound>(),
     soundSource: text('sound_source').$type<FactSource>(),
+    imaxType: text('imax_type').$type<ImaxType>(),
+    imaxTypeSource: text('imax_type_source').$type<FactSource>(),
+    screenSize: text('screen_size').$type<ScreenSize>(),
+    screenSizeSource: text('screen_size_source').$type<FactSource>(),
+    threeD: text('three_d').$type<ThreeD>(),
+    threeDSource: text('three_d_source').$type<FactSource>(),
+    seatType: text('seat_type').$type<SeatType>(),
+    seatTypeSource: text('seat_type_source').$type<FactSource>(),
     seats: integer('seats').notNull(),
     wheelchairSeats: integer('wheelchair_seats').notNull().default(0),
     reducedMobilitySeats: integer('reduced_mobility_seats').notNull().default(0),
@@ -134,7 +159,7 @@ export const room = sqliteTable(
   (t) => [index('room_cinema_id_idx').on(t.cinemaId), index('room_format_idx').on(t.format)],
 )
 
-/** One user's answer for one room detail (format, projection or sound). */
+/** One user's answer for one room detail (a key of ROOM_FACTS: format, projection, sound…). */
 export const roomFact = sqliteTable(
   'room_fact',
   {
@@ -171,6 +196,8 @@ export const review = sqliteTable(
     comfort: integer('comfort').notNull(),
     cleanliness: integer('cleanliness').notNull(),
     row: text('row'),
+    /** Where in the row: left, center or right. */
+    seatPosition: text('seat_position').$type<SeatPosition>(),
     film: text('film'),
     /** TMDB id when the film was picked from the autocomplete; drives the hover card. */
     filmTmdbId: integer('film_tmdb_id'),
@@ -208,6 +235,51 @@ export const reviewHelpful = sqliteTable(
     uniqueIndex('review_helpful_one_vote_idx').on(t.reviewId, t.userId),
     index('review_helpful_user_idx').on(t.userId),
   ],
+)
+
+/**
+ * A "vista da poltrona": the view of the screen from the row in a review, one
+ * per review. The image lives in R2 (`PHOTOS`) under `key`; a reported photo is
+ * hidden until a moderator restores or deletes it.
+ */
+export const seatPhoto = sqliteTable(
+  'seat_photo',
+  {
+    id: text('id').primaryKey(),
+    reviewId: text('review_id')
+      .notNull()
+      .unique()
+      .references(() => review.id, { onDelete: 'cascade' }),
+    roomId: text('room_id')
+      .notNull()
+      .references(() => room.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    contentType: text('content_type').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    status: text('status').$type<PhotoStatus>().notNull().default('visible'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [index('seat_photo_room_idx').on(t.roomId, t.status), index('seat_photo_status_idx').on(t.status)],
+)
+
+/** One reader reporting one photo; the first report hides it. */
+export const photoReport = sqliteTable(
+  'photo_report',
+  {
+    id: text('id').primaryKey(),
+    photoId: text('photo_id')
+      .notNull()
+      .references(() => seatPhoto.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [uniqueIndex('photo_report_one_per_user_idx').on(t.photoId, t.userId)],
 )
 
 /** One user following another; their reviews make up the follower's feed (/feed). */

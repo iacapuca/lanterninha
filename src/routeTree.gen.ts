@@ -20,10 +20,13 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminPhotosRouteImport } from './routes/admin/photos'
+import { Route as ApiPhotosRouteImport } from './routes/api/photos'
 import { Route as CinemasIndexRouteImport } from './routes/cinemas/index'
 import { Route as CinemasCinemaIdRouteImport } from './routes/cinemas/$cinemaId'
 import { Route as MelhoresSalasIndexRouteImport } from './routes/melhores-salas/index'
 import { Route as OgSiteRouteImport } from './routes/og/site'
+import { Route as PhotosPhotoIdRouteImport } from './routes/photos/$photoId'
 import { Route as PostersFilmIdRouteImport } from './routes/posters/$filmId'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
 import { Route as UsersUsernameRouteImport } from './routes/users/$username'
@@ -93,6 +96,16 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPhotosRoute = AdminPhotosRouteImport.update({
+  id: '/admin/photos',
+  path: '/admin/photos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPhotosRoute = ApiPhotosRouteImport.update({
+  id: '/api/photos',
+  path: '/api/photos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CinemasIndexRoute = CinemasIndexRouteImport.update({
   id: '/cinemas/',
   path: '/cinemas/',
@@ -111,6 +124,11 @@ const MelhoresSalasIndexRoute = MelhoresSalasIndexRouteImport.update({
 const OgSiteRoute = OgSiteRouteImport.update({
   id: '/og/site',
   path: '/og/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotosPhotoIdRoute = PhotosPhotoIdRouteImport.update({
+  id: '/photos/$photoId',
+  path: '/photos/$photoId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PostersFilmIdRoute = PostersFilmIdRouteImport.update({
@@ -192,8 +210,11 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/photos': typeof AdminPhotosRoute
+  '/api/photos': typeof ApiPhotosRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
   '/og/site': typeof OgSiteRoute
+  '/photos/$photoId': typeof PhotosPhotoIdRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
@@ -222,8 +243,11 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/photos': typeof AdminPhotosRoute
+  '/api/photos': typeof ApiPhotosRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
   '/og/site': typeof OgSiteRoute
+  '/photos/$photoId': typeof PhotosPhotoIdRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas': typeof CinemasIndexRoute
@@ -253,8 +277,11 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/photos': typeof AdminPhotosRoute
+  '/api/photos': typeof ApiPhotosRoute
   '/cinemas/$cinemaId': typeof CinemasCinemaIdRoute
   '/og/site': typeof OgSiteRoute
+  '/photos/$photoId': typeof PhotosPhotoIdRoute
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
@@ -285,8 +312,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/photos'
+    | '/api/photos'
     | '/cinemas/$cinemaId'
     | '/og/site'
+    | '/photos/$photoId'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
@@ -315,8 +345,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/photos'
+    | '/api/photos'
     | '/cinemas/$cinemaId'
     | '/og/site'
+    | '/photos/$photoId'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas'
@@ -345,8 +378,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/photos'
+    | '/api/photos'
     | '/cinemas/$cinemaId'
     | '/og/site'
+    | '/photos/$photoId'
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
@@ -376,8 +412,11 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  AdminPhotosRoute: typeof AdminPhotosRoute
+  ApiPhotosRoute: typeof ApiPhotosRoute
   CinemasCinemaIdRoute: typeof CinemasCinemaIdRoute
   OgSiteRoute: typeof OgSiteRoute
+  PhotosPhotoIdRoute: typeof PhotosPhotoIdRoute
   PostersFilmIdRoute: typeof PostersFilmIdRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
   CinemasIndexRoute: typeof CinemasIndexRoute
@@ -474,6 +513,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/photos': {
+      id: '/admin/photos'
+      path: '/admin/photos'
+      fullPath: '/admin/photos'
+      preLoaderRoute: typeof AdminPhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/photos': {
+      id: '/api/photos'
+      path: '/api/photos'
+      fullPath: '/api/photos'
+      preLoaderRoute: typeof ApiPhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cinemas/': {
       id: '/cinemas/'
       path: '/cinemas'
@@ -500,6 +553,13 @@ declare module '@tanstack/react-router' {
       path: '/og/site'
       fullPath: '/og/site'
       preLoaderRoute: typeof OgSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photos/$photoId': {
+      id: '/photos/$photoId'
+      path: '/photos/$photoId'
+      fullPath: '/photos/$photoId'
+      preLoaderRoute: typeof PhotosPhotoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posters/$filmId': {
@@ -608,8 +668,11 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  AdminPhotosRoute: AdminPhotosRoute,
+  ApiPhotosRoute: ApiPhotosRoute,
   CinemasCinemaIdRoute: CinemasCinemaIdRoute,
   OgSiteRoute: OgSiteRoute,
+  PhotosPhotoIdRoute: PhotosPhotoIdRoute,
   PostersFilmIdRoute: PostersFilmIdRoute,
   UsersUsernameRoute: UsersUsernameRoute,
   CinemasIndexRoute: CinemasIndexRoute,

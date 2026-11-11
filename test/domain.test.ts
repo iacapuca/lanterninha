@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { citySlug, earnedBadges, timeZoneOf, type ContributionStats } from '~/lib/domain'
+import { citySlug, earnedBadges, factFieldsFor, rowOrder, timeZoneOf, type ContributionStats } from '~/lib/domain'
 import { formatRating, pluralize } from '~/lib/format'
-import { exploreSearchSchema, newReviewSchema } from '~/lib/schemas'
+import { exploreSearchSchema, newReviewSchema, roomFactVoteSchema } from '~/lib/schemas'
+import { sniffPhotoType } from '~/server/photo-type.server'
 
 const none: ContributionStats = { reviews: 0, cities: 0, format: 0, projection: 0, sound: 0, firstAnswers: 0 }
 
@@ -67,5 +68,55 @@ describe('city slugs', () => {
     expect(citySlug('São Paulo', 'SP')).toBe('sao-paulo-sp')
     expect(citySlug("Santa Bárbara d'Oeste", 'SP')).toBe('santa-barbara-d-oeste-sp')
     expect(citySlug('Valença', 'BA')).not.toBe(citySlug('Valença', 'RJ'))
+  })
+})
+
+describe('room facts', () => {
+  it('ask which IMAX only on IMAX rooms', () => {
+    expect(factFieldsFor('imax')).toContain('imaxType')
+    expect(factFieldsFor('standard')).not.toContain('imaxType')
+    expect(factFieldsFor(null)).not.toContain('imaxType')
+    expect(factFieldsFor(null)).toEqual(['format', 'screenSize', 'projection', 'sound', 'threeD', 'seatType'])
+  })
+
+  it('accept only the options of the field voted on', () => {
+    const vote = (field: string, value: string) => roomFactVoteSchema.safeParse({ roomId: 'r1', field, value }).success
+    expect(vote('imaxType', 'laser-gt')).toBe(true)
+    expect(vote('screenSize', '15-20')).toBe(true)
+    expect(vote('threeD', 'no')).toBe(true)
+    expect(vote('seatType', 'reclining')).toBe(true)
+    expect(vote('seatType', 'laser-gt')).toBe(false)
+    expect(vote('size', '15-20')).toBe(false)
+  })
+})
+
+describe('seat photos', () => {
+  it('sort rows from the screen back, with no row last', () => {
+    const rows = ['AA', null, 'B', 'Z', 'A']
+    expect(rows.sort((a, b) => rowOrder(a) - rowOrder(b))).toEqual(['A', 'B', 'Z', 'AA', null])
+  })
+
+  it('trust the file bytes, not the name', () => {
+    const bytes = (...xs: Array<number | string>) =>
+      new Uint8Array(xs.flatMap((x) => (typeof x === 'string' ? [...x].map((c) => c.charCodeAt(0)) : [x])))
+    expect(sniffPhotoType(bytes('RIFF', 0, 0, 0, 0, 'WEBP', 'VP8 '))).toBe('image/webp')
+    expect(sniffPhotoType(bytes(0xff, 0xd8, 0xff, 0xe0, 0))).toBe('image/jpeg')
+    expect(sniffPhotoType(bytes(0x89, 'PNG', 0x0d, 0x0a))).toBe(null)
+    expect(sniffPhotoType(bytes('<svg onload=alert(1)>'))).toBe(null)
+  })
+
+  it('keep the seat position only as a known option', () => {
+    const base = {
+      roomId: 'r1',
+      rating: 4,
+      criteria: { picture: 4, sound: 4, comfort: 4, cleanliness: 4 },
+      body: 'Boa sala, tela grande.',
+    }
+    expect(newReviewSchema.parse({ ...base, row: 'h', seatPosition: 'center' })).toMatchObject({
+      row: 'H',
+      seatPosition: 'center',
+    })
+    expect(newReviewSchema.parse({ ...base, seatPosition: '' }).seatPosition).toBe(null)
+    expect(newReviewSchema.safeParse({ ...base, seatPosition: 'aisle' }).success).toBe(false)
   })
 })

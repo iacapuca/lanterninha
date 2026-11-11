@@ -5,6 +5,7 @@ interface __BaseEnv_Env {
 	DB: D1Database;
 	EMAIL: SendEmail;
 	ANALYTICS: AnalyticsEngineDataset;
+	PHOTOS: R2Bucket;
 	INGRESSO_PARTNERSHIP: "lanterninha";
 	INGRESSO_THEATER_BATCH: "12";
 	INGRESSO_PROXY_URL: "";

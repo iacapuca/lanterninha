@@ -3,6 +3,7 @@
 import { and, asc, count, desc, eq, getColumns, gte, inArray, isNotNull, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CinemaSummary,
+  SeatPhoto,
   ContributionStats,
   Criterion,
   Format,
@@ -14,7 +15,7 @@ import type {
   State,
   Tag,
 } from '~/lib/domain'
-import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
+import { CRITERION_IDS, factFieldsFor, FORMAT_IDS, RATINGS, ROOM_FACT_FIELDS, timeZoneOf } from '~/lib/domain'
 import type { ExploreSearch, NewReview, UpdateReview } from '~/lib/schemas'
 import { db } from './db/client.server'
 import {
@@ -25,8 +26,10 @@ import {
   providerTheater,
   review,
   reviewHelpful,
+  photoReport,
   room,
   roomFact,
+  seatPhoto,
   showtime,
   user,
 } from './db/schema.server'
@@ -218,8 +221,8 @@ const withRoom = {
 const withRoomAndCinema = { ...withAuthor, ...withRoom } as const
 
 type ReviewRecord = typeof review.$inferSelect & { user: { username: string | null; name: string } }
-/** A review before its "útil" counts are added (see withHelpful). */
-type ReviewBase = Omit<Review, 'helpful' | 'markedHelpful'>
+/** A review before its "útil" counts and photo are added (see withHelpful). */
+type ReviewBase = Omit<Review, 'helpful' | 'markedHelpful' | 'photo'>
 
 function toReview({
   picture,
@@ -254,27 +257,41 @@ function chunks<T>(xs: T[], size = 90) {
   return Array.from({ length: Math.ceil(xs.length / size) }, (_, i) => xs.slice(i * size, (i + 1) * size))
 }
 
-/** Adds each review's "útil" count, and whether the viewer marked it, in one grouped query per 90 reviews. */
+/**
+ * Adds each review's "útil" count, whether the viewer marked it, and its
+ * visible seat photo: two queries per 90 reviews.
+ */
 async function withHelpful<R extends ReviewBase>(reviews: R[], viewerId?: string): Promise<Array<R & Review>> {
   const counts = new Map<string, { n: number; mine: boolean }>()
+  const photos = new Map<string, SeatPhoto>()
   const batches = await Promise.all(
     chunks(reviews.map((r) => r.id)).map((ids) =>
-      db
-        .select({
-          reviewId: reviewHelpful.reviewId,
-          n: count(),
-          mine: sql<number>`max(${reviewHelpful.userId} = ${viewerId ?? ''})`,
-        })
-        .from(reviewHelpful)
-        .where(inArray(reviewHelpful.reviewId, ids))
-        .groupBy(reviewHelpful.reviewId),
+      Promise.all([
+        db
+          .select({
+            reviewId: reviewHelpful.reviewId,
+            n: count(),
+            mine: sql<number>`max(${reviewHelpful.userId} = ${viewerId ?? ''})`,
+          })
+          .from(reviewHelpful)
+          .where(inArray(reviewHelpful.reviewId, ids))
+          .groupBy(reviewHelpful.reviewId),
+        db
+          .select({ ...photoColumns, reviewId: seatPhoto.reviewId })
+          .from(seatPhoto)
+          .where(and(inArray(seatPhoto.reviewId, ids), eq(seatPhoto.status, 'visible'))),
+      ]),
     ),
   )
-  for (const row of batches.flat()) counts.set(row.reviewId, { n: row.n, mine: Boolean(row.mine) })
+  for (const [helpful, found] of batches) {
+    for (const row of helpful) counts.set(row.reviewId, { n: row.n, mine: Boolean(row.mine) })
+    for (const { reviewId, ...photo } of found) photos.set(reviewId, photo)
+  }
   return reviews.map((r) => ({
     ...r,
     helpful: counts.get(r.id)?.n ?? 0,
     markedHelpful: counts.get(r.id)?.mine ?? false,
+    photo: photos.get(r.id) ?? null,
   }))
 }
 
@@ -547,6 +564,7 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
       rating: input.rating,
       ...input.criteria,
       row: input.row,
+      seatPosition: input.row ? input.seatPosition : null,
       film: input.film,
       filmTmdbId: input.film ? input.filmTmdbId : null,
       body: input.body,
@@ -573,10 +591,12 @@ export async function getOwnReview(userId: string, id: string) {
     rating: found.rating,
     criteria: { picture, sound, comfort, cleanliness },
     row: found.row,
+    seatPosition: found.seatPosition,
     film: found.film,
     filmTmdbId: found.filmTmdbId,
     body: found.body,
     tags: found.tags,
+    photo: await getReviewPhoto(found.id),
   }
 }
 
@@ -588,6 +608,7 @@ export async function updateReview(userId: string, input: UpdateReview) {
       rating: input.rating,
       ...input.criteria,
       row: input.row,
+      seatPosition: input.row ? input.seatPosition : null,
       film: input.film,
       filmTmdbId: input.film ? input.filmTmdbId : null,
       body: input.body,
@@ -599,23 +620,157 @@ export async function updateReview(userId: string, input: UpdateReview) {
 }
 
 export async function deleteReview(userId: string, id: string) {
+  // The photo row cascades with the review; read its key first so the image can go too.
+  const [photo] = await db
+    .select({ key: seatPhoto.key })
+    .from(seatPhoto)
+    .innerJoin(review, eq(seatPhoto.reviewId, review.id))
+    .where(and(eq(review.id, id), eq(review.userId, userId)))
   const deleted = await db
     .delete(review)
     .where(and(eq(review.id, id), eq(review.userId, userId)))
     .returning({ id: review.id, roomId: review.roomId })
-  return deleted[0] ?? null
+  return deleted[0] ? { ...deleted[0], photoKey: photo?.key ?? null } : null
 }
 
-// ---------- Community room facts (format, projection, sound) ----------
+// ---------- Seat photos (images in R2, see photos.server.ts) ----------
+
+const photoColumns = {
+  id: seatPhoto.id,
+  width: seatPhoto.width,
+  height: seatPhoto.height,
+}
+
+/** A review's photo, hidden or not: its author still sees it in the edit form. */
+async function getReviewPhoto(reviewId: string): Promise<SeatPhoto | null> {
+  const [found] = await db.select(photoColumns).from(seatPhoto).where(eq(seatPhoto.reviewId, reviewId)).limit(1)
+  return found ?? null
+}
+
+/** The author's review a photo is being attached to, or null if it isn't theirs. */
+export async function getReviewForPhoto(userId: string, reviewId: string) {
+  const [found] = await db
+    .select({ id: review.id, roomId: review.roomId, row: review.row })
+    .from(review)
+    .where(and(eq(review.id, reviewId), eq(review.userId, userId)))
+    .limit(1)
+  return found ?? null
+}
+
+/** Attaches a photo to a review, replacing any earlier one; returns the replaced photo's R2 key. */
+export async function saveSeatPhoto(photo: {
+  id: string
+  reviewId: string
+  roomId: string
+  userId: string
+  key: string
+  contentType: string
+  width: number
+  height: number
+}) {
+  const previous = await removeSeatPhoto(photo.reviewId)
+  await db.insert(seatPhoto).values({ ...photo, status: 'visible', createdAt: new Date() })
+  return previous
+}
+
+/** Deletes a review's photo row; returns its R2 key so the caller can delete the image. */
+export async function removeSeatPhoto(reviewId: string) {
+  const [deleted] = await db.delete(seatPhoto).where(eq(seatPhoto.reviewId, reviewId)).returning({ key: seatPhoto.key })
+  return deleted?.key ?? null
+}
+
+/** R2 keys of every photo a user uploaded, for deleting the images with their account. */
+export async function listUserPhotoKeys(userId: string) {
+  const rows = await db.select({ key: seatPhoto.key }).from(seatPhoto).where(eq(seatPhoto.userId, userId))
+  return rows.map((r) => r.key)
+}
+
+/** What the /photos route needs to serve an image. */
+export async function getPhotoObject(id: string) {
+  const [found] = await db
+    .select({ key: seatPhoto.key, contentType: seatPhoto.contentType, status: seatPhoto.status })
+    .from(seatPhoto)
+    .where(eq(seatPhoto.id, id))
+    .limit(1)
+  return found ?? null
+}
+
+export type ReportPhotoResult = { ok: true } | { ok: false; reason: 'unknown-photo' | 'own-photo' }
+
+/** Records a report and hides the photo until a moderator looks at it. Reporting twice is a no-op. */
+export async function reportPhoto(userId: string, photoId: string): Promise<ReportPhotoResult> {
+  const [target] = await db
+    .select({ userId: seatPhoto.userId })
+    .from(seatPhoto)
+    .where(eq(seatPhoto.id, photoId))
+    .limit(1)
+  if (!target) return { ok: false, reason: 'unknown-photo' }
+  if (target.userId === userId) return { ok: false, reason: 'own-photo' }
+  await db.batch([
+    db
+      .insert(photoReport)
+      .values({ id: crypto.randomUUID(), photoId, userId, createdAt: new Date() })
+      .onConflictDoNothing(),
+    db.update(seatPhoto).set({ status: 'reported' }).where(eq(seatPhoto.id, photoId)),
+  ])
+  return { ok: true }
+}
+
+export async function isAdmin(userId: string) {
+  const [found] = await db.select({ isAdmin: user.isAdmin }).from(user).where(eq(user.id, userId)).limit(1)
+  return found?.isAdmin ?? false
+}
+
+/** The moderation queue: hidden photos with their review and how many people reported them. */
+export async function listReportedPhotos() {
+  return db
+    .select({
+      ...photoColumns,
+      createdAt: seatPhoto.createdAt,
+      reports: sql<number>`(select count(*) from ${photoReport} where ${photoReport.photoId} = ${seatPhoto.id})`,
+      username: user.username,
+      reviewBody: review.body,
+      row: review.row,
+      roomId: room.id,
+      roomName: room.name,
+      cinemaName: cinema.name,
+    })
+    .from(seatPhoto)
+    .innerJoin(review, eq(seatPhoto.reviewId, review.id))
+    .innerJoin(user, eq(seatPhoto.userId, user.id))
+    .innerJoin(room, eq(seatPhoto.roomId, room.id))
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .where(eq(seatPhoto.status, 'reported'))
+    .orderBy(desc(seatPhoto.createdAt))
+}
+
+/** A moderator's call: put a reported photo back (clearing its reports), or delete it. */
+export async function moderatePhoto(id: string, action: 'restore' | 'delete') {
+  if (action === 'restore') {
+    await db.batch([
+      db.delete(photoReport).where(eq(photoReport.photoId, id)),
+      db.update(seatPhoto).set({ status: 'visible' }).where(eq(seatPhoto.id, id)),
+    ])
+    return null
+  }
+  const [deleted] = await db.delete(seatPhoto).where(eq(seatPhoto.id, id)).returning({ key: seatPhoto.key })
+  return deleted?.key ?? null
+}
+
+// ---------- Community room facts (ROOM_FACTS: format, projection, sound…) ----------
 
 /** Votes needed for the community to override a value from ANCINE's room name or Ingresso.com. */
 const OVERRIDE_ANCINE_AT = 3
 
 const sourceColumn = {
-  format: { value: room.format, source: room.formatSource },
-  projection: { value: room.projection, source: room.projectionSource },
-  sound: { value: room.sound, source: room.soundSource },
-} as const
+  format: room.formatSource,
+  imaxType: room.imaxTypeSource,
+  screenSize: room.screenSizeSource,
+  projection: room.projectionSource,
+  sound: room.soundSource,
+  threeD: room.threeDSource,
+  seatType: room.seatTypeSource,
+} as const satisfies Record<RoomFactField, unknown>
 
 export type FactVotes = Record<RoomFactField, Array<{ value: string; votes: number }>>
 
@@ -626,7 +781,7 @@ export async function getRoomFactVotes(roomId: string, userId?: string) {
     .where(eq(roomFact.roomId, roomId))
     .groupBy(roomFact.field, roomFact.value)
     .orderBy(desc(count()))
-  const votes: FactVotes = { format: [], projection: [], sound: [] }
+  const votes = Object.fromEntries(ROOM_FACT_FIELDS.map((f) => [f, []])) as unknown as FactVotes
   for (const r of rows) votes[r.field].push({ value: r.value, votes: r.votes })
 
   const mine = userId
@@ -644,8 +799,10 @@ export async function getRoomFactVotes(roomId: string, userId?: string) {
  * fewer than OVERRIDE_ANCINE_AT people disagree.
  */
 export async function voteRoomFact(userId: string, roomId: string, field: RoomFactField, value: string) {
-  const [target] = await db.select({ id: room.id }).from(room).where(eq(room.id, roomId)).limit(1)
+  const [target] = await db.select({ format: room.format }).from(room).where(eq(room.id, roomId)).limit(1)
   if (!target) return { ok: false as const, reason: 'unknown-room' as const }
+  if (!factFieldsFor(target.format).includes(field))
+    return { ok: false as const, reason: 'fact-not-applicable' as const }
 
   await db
     .insert(roomFact)
@@ -658,8 +815,7 @@ export async function voteRoomFact(userId: string, roomId: string, field: RoomFa
 
   const { votes } = await getRoomFactVotes(roomId)
   const top = votes[field][0]
-  const columns = sourceColumn[field]
-  const [current] = await db.select({ source: columns.source }).from(room).where(eq(room.id, roomId))
+  const [current] = await db.select({ source: sourceColumn[field] }).from(room).where(eq(room.id, roomId))
   const fromSource = current?.source === 'ancine' || current?.source === 'ingresso'
   if (top && (!fromSource || top.votes >= OVERRIDE_ANCINE_AT)) {
     await db

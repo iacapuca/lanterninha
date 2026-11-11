@@ -7,6 +7,8 @@ import { USERNAME_PATTERN } from '~/lib/schemas'
 import { db } from './db/client.server'
 import { track } from './analytics.server'
 import { sendPasswordResetEmail, sendVerificationEmail } from './email.server'
+import { deleteImage } from './photos.server'
+import { listUserPhotoKeys } from './store.server'
 import { account, session, user, verification } from './db/schema.server'
 
 /**
@@ -49,7 +51,13 @@ export const auth = betterAuth({
   },
   user: {
     // LGPD: people can delete their account; reviews and votes cascade with it.
-    deleteUser: { enabled: true },
+    // Photo rows cascade too, but their images live in R2, so delete those first.
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        await Promise.all((await listUserPhotoKeys(user.id)).map(deleteImage))
+      },
+    },
   },
   plugins: [
     username({

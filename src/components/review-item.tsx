@@ -16,10 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '~/components/ui/dialog'
-import { CRITERIA, CRITERION_IDS, type Review, type ReviewWithRoom } from '~/lib/domain'
+import { CRITERIA, CRITERION_IDS, SEAT_POSITIONS, type Review, type ReviewWithRoom } from '~/lib/domain'
 import { formatDate, formatRating } from '~/lib/format'
 import { ReviewFilm } from './film-card'
 import { Lanterns } from './lanterns'
+import { SeatPhotoFigure } from './seat-photo'
 import { Ticket, ticketSerial } from './ticket'
 
 /** A review is the stub you kept from the session: who, when, which row, how many 🔦. */
@@ -44,7 +45,12 @@ export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
               </div>
               <div>
                 <dt>Fileira</dt>
-                <dd>{review.row ?? '—'}</dd>
+                <dd>
+                  {review.row ?? '—'}
+                  {review.row && review.seatPosition && (
+                    <span className="review-seat"> · {SEAT_POSITIONS[review.seatPosition]}</span>
+                  )}
+                </dd>
               </div>
             </dl>
             <span className="ticket-serial">{ticketSerial(review.id)}</span>
@@ -71,6 +77,7 @@ export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
         )}
 
         <p className="review-body">{review.body}</p>
+        <SeatPhotoFigure review={review} />
 
         <p className="review-criteria">
           {CRITERION_IDS.map((c) => (

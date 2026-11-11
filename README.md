@@ -216,6 +216,38 @@ are attached to review lists in one grouped query (`withHelpful` in
 `store.server.ts`, chunked under D1's 100-parameter limit). Both tables
 cascade with the user and the review.
 
+### Room specs
+
+Each room's spec sheet is `ROOM_FACTS` in `src/lib/domain.ts`: format,
+projection, sound, screen width (in ranges), 3D, seat type, and which IMAX
+(only on IMAX rooms, via `onlyFor`). Readers vote one answer per detail
+(`room_fact`); the room shows the most-voted one, unless ANCINE's room name or
+a ticketing portal says otherwise and fewer than 3 people disagree. Adding a
+detail means an entry in `ROOM_FACTS`, a `<field>`/`<field>Source` column pair
+on `room`, and its line in `roomFactVoteSchema` and `sourceColumn`.
+
+### Seat photos ("vista da poltrona")
+
+A review can carry one photo of the screen from the reviewer's seat, next to
+its row and seat position (left, centre, right). The browser shrinks it to
+1600 px and re-encodes it as WebP (JPEG on Safari) in `src/lib/photo-resize.ts`,
+which also strips EXIF data such as GPS. It's uploaded as a raw body to
+`POST /api/photos`, which checks ownership, size and the file's real type from
+its bytes, and stores it in R2 (`PHOTOS` binding, bucket `lanterninha-photos`)
+with a `seat_photo` row. `/photos/<id>` serves it (cached for a day) and the
+room page shows every photo in a "Vista da poltrona" strip, front rows first.
+
+Any signed-in reader can report a photo, which hides it at once
+(`status = 'reported'`) until a moderator restores or deletes it at
+`/admin/photos`. Moderators have `user.is_admin` set by hand:
+
+```sh
+pnpm exec wrangler d1 execute lanterninha --remote \
+  --command "UPDATE user SET is_admin = 1 WHERE username = '<you>'"
+```
+
+Images are deleted from R2 with their photo, review or account.
+
 ### Rankings (/melhores-salas)
 
 `/melhores-salas` is the hub (national top 10, every city and format with a
@@ -239,7 +271,7 @@ Two cookieless layers, so there's no consent banner (see `/privacy`):
   `src/server/analytics.server.ts`. No user ids, emails or IPs. Events:
   `signup`, `email_confirmed`, `review_draft_started`, `review_created`,
   `fact_voted`, `checkout_click`, `search_empty`, `review_marked_helpful`,
-  `user_followed`. `blob1` is the event name and the other blobs follow the
+  `user_followed`, `photo_uploaded`, `photo_reported`. `blob1` is the event name and the other blobs follow the
   field list in `EVENTS`.
 
 Session times link to `/go/showtime/<id>`, which records `checkout_click`
@@ -329,6 +361,7 @@ params are coerced to defaults, and defaults are stripped from URLs.
 | `/cinemas/$id`, `/users/$username`, `/sign-in` | full             | Small pages, nothing worth deferring                                                                             |
 | `/melhores-salas/…`                            | full             | Shareable, indexable rankings                                                                                    |
 | `/feed`                                        | full             | Private (follows); `noindex`, disallowed in robots.txt                                                           |
+| `/admin/photos`                                | full             | Moderators only (404 for everyone else); `noindex`, disallowed in robots.txt                                     |
 | `/sitemap.xml`, `/robots.txt`                  | server routes    | Raw HTTP handlers                                                                                                |
 
 Crawlers get fully resolved HTML; browsers get the shell first and the streamed

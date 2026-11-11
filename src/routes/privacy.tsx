@@ -14,7 +14,7 @@ export const Route = createFileRoute('/privacy')({
   component: PrivacyPage,
 })
 
-export const LEGAL_UPDATED_AT = '24 de outubro de 2026'
+export const LEGAL_UPDATED_AT = '11 de novembro de 2026'
 export const CONTACT_EMAIL = 'contato@lanterninha.review'
 
 function PrivacyPage() {
@@ -35,9 +35,14 @@ function PrivacyPage() {
           conseguimos lê-la.
         </li>
         <li>
-          <strong>O que você publica:</strong> avaliações (notas, texto, fileira, filme, etiquetas e data) e respostas
-          sobre as salas (tipo de tela, projeção, som). Avaliações e respostas são <strong>públicas</strong> e aparecem
-          com o seu @.
+          <strong>O que você publica:</strong> avaliações (notas, texto, fileira e lugar na fileira, filme, etiquetas e
+          data), a foto da vista da poltrona, se você enviar uma, e respostas sobre as salas (tipo de tela, projeção,
+          som e outros detalhes). Avaliações, fotos e respostas são <strong>públicas</strong> e aparecem com o seu @.
+        </li>
+        <li>
+          <strong>Fotos:</strong> antes do envio, o seu navegador reduz a foto e remove os dados embutidos nela (como a
+          localização GPS e o modelo do celular). Se alguém denunciar uma foto, ela fica escondida até a equipe revisar;
+          guardamos quem denunciou para evitar denúncias repetidas.
         </li>
         <li>
           <strong>Interações:</strong> quem você segue e quais avaliações você marcou como “útil”. O número de

@@ -1,6 +1,7 @@
 import { createMiddleware } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { auth } from '~/server/auth.server'
+import { isAdmin } from '~/server/store.server'
 
 /**
  * Server-function middleware: the security boundary for writes.
@@ -17,3 +18,11 @@ export const requireSession = createMiddleware({ type: 'function' }).server(asyn
     },
   })
 })
+
+/** Moderators only (`user.is_admin`). Anyone else gets the same error as a missing page. */
+export const requireAdmin = createMiddleware({ type: 'function' })
+  .middleware([requireSession])
+  .server(async ({ next, context }) => {
+    if (!(await isAdmin(context.userId))) throw new Error('Página não encontrada.')
+    return next()
+  })

@@ -3,7 +3,15 @@ import { Link, useLocation, useRouteContext, useRouter } from '@tanstack/react-r
 import { useServerFn } from '@tanstack/react-start'
 import { toast } from 'sonner'
 import { voteRoomFact } from '~/functions/reviews.functions'
-import { BADGES, badgeImage, ROOM_FACTS, ROOM_FACT_FIELDS, type FactSource, type RoomFactField } from '~/lib/domain'
+import {
+  BADGES,
+  badgeImage,
+  factFieldsFor,
+  ROOM_FACTS,
+  type FactSource,
+  type Room,
+  type RoomFactField,
+} from '~/lib/domain'
 import { pluralize } from '~/lib/format'
 import { roomFactVoteSchema } from '~/lib/schemas'
 import { Button } from '~/components/ui/button'
@@ -11,22 +19,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Props = {
-  roomId: string
-  values: Record<RoomFactField, string | null>
-  sources: Record<RoomFactField, FactSource | null>
+  room: Room
   votes: Record<RoomFactField, Array<{ value: string; votes: number }>>
   mine: Partial<Record<RoomFactField, string>>
+}
+
+const SOURCE_TEXT: Record<Exclude<FactSource, 'community'>, string> = {
+  ancine: 'pelo nome na ANCINE',
+  ingresso: 'via Ingresso.com',
+  velox: 'via Velox Tickets',
 }
 
 const label = (field: RoomFactField, value: string) =>
   (ROOM_FACTS[field].options as Record<string, string>)[value] ?? value
 
 /** The room's spec sheet. Unknown details invite the community to fill them in. */
-export function RoomFacts({ roomId, values, sources, votes, mine }: Props) {
+export function RoomFacts({ room, votes, mine }: Props) {
+  const roomId = room.id
   return (
     <dl className="ticket-fields room-facts">
-      {ROOM_FACT_FIELDS.map((field) => {
-        const value = values[field]
+      {factFieldsFor(room.format).map((field) => {
+        const value = room[field]
+        const source = room[`${field}Source`]
         const total = votes[field].reduce((n, v) => n + v.votes, 0)
         return (
           <div key={field}>
@@ -36,11 +50,9 @@ export function RoomFacts({ roomId, values, sources, votes, mine }: Props) {
               <FactPopover roomId={roomId} field={field} current={mine[field] ?? null}>
                 {value ? (
                   <button type="button" className="fact-source">
-                    {sources[field] === 'community'
+                    {source === 'community' || !source
                       ? `segundo ${pluralize(total, 'pessoa', 'pessoas')}`
-                      : sources[field] === 'ingresso'
-                        ? 'via Ingresso.com'
-                        : 'pelo nome na ANCINE'}{' '}
+                      : SOURCE_TEXT[source]}{' '}
                     · corrigir
                   </button>
                 ) : (

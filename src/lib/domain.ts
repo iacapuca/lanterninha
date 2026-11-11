@@ -94,14 +94,57 @@ export const SOUNDS = {
 } as const
 export type Sound = keyof typeof SOUNDS
 
-/** Room details the community can fill in, with the options and pt-BR copy for each. */
+/** Which IMAX a room really has; "IMAX" on a ticket covers very different screens. */
+export const IMAX_TYPES = {
+  'laser-gt': 'IMAX Laser GT (tela 1.43:1)',
+  laser: 'IMAX com Laser',
+  digital: 'IMAX Digital (xenônio)',
+  '70mm': 'IMAX 70mm (película)',
+} as const
+export type ImaxType = keyof typeof IMAX_TYPES
+
+/** Screen width in ranges: few people know the exact size, most can guess the range. */
+export const SCREEN_SIZES = {
+  'under-10': 'Menos de 10 m',
+  '10-15': 'De 10 a 15 m',
+  '15-20': 'De 15 a 20 m',
+  'over-20': 'Mais de 20 m',
+} as const
+export type ScreenSize = keyof typeof SCREEN_SIZES
+
+export const THREE_D = { yes: 'Exibe 3D', no: 'Não exibe 3D' } as const
+export type ThreeD = keyof typeof THREE_D
+
+export const SEAT_TYPES = {
+  standard: 'Comum',
+  reclining: 'Reclinável',
+  motion: 'Com movimento (D-BOX, 4DX)',
+} as const
+export type SeatType = keyof typeof SEAT_TYPES
+
+/**
+ * Room details the community can fill in, with the options and pt-BR copy for
+ * each. `onlyFor` limits a detail to rooms of one format.
+ */
 export const ROOM_FACTS = {
   format: { label: 'Tipo de tela', cta: 'Adicione o tipo de tela', options: FORMATS },
+  imaxType: { label: 'Qual IMAX', cta: 'Diga qual IMAX é', options: IMAX_TYPES, onlyFor: 'imax' },
+  screenSize: { label: 'Largura da tela', cta: 'Adicione a largura da tela', options: SCREEN_SIZES },
   projection: { label: 'Projeção', cta: 'Adicione a projeção', options: PROJECTIONS },
   sound: { label: 'Som', cta: 'Adicione o som', options: SOUNDS },
-} as const
+  threeD: { label: '3D', cta: 'Diga se exibe 3D', options: THREE_D },
+  seatType: { label: 'Poltronas', cta: 'Adicione o tipo de poltrona', options: SEAT_TYPES },
+} as const satisfies Record<string, { label: string; cta: string; options: Record<string, string>; onlyFor?: Format }>
 export type RoomFactField = keyof typeof ROOM_FACTS
 export const ROOM_FACT_FIELDS = Object.keys(ROOM_FACTS) as RoomFactField[]
+
+/** The details that apply to a room: all of them, minus the ones for other formats. */
+export function factFieldsFor(format: Format | null) {
+  return ROOM_FACT_FIELDS.filter((field) => {
+    const onlyFor = (ROOM_FACTS[field] as { onlyFor?: Format }).onlyFor
+    return !onlyFor || onlyFor === format
+  })
+}
 
 /**
  * Where a room detail came from, weakest to strongest: guessed from ANCINE's
@@ -142,6 +185,14 @@ export type Room = {
   projectionSource: FactSource | null
   sound: Sound | null
   soundSource: FactSource | null
+  imaxType: ImaxType | null
+  imaxTypeSource: FactSource | null
+  screenSize: ScreenSize | null
+  screenSizeSource: FactSource | null
+  threeD: ThreeD | null
+  threeDSource: FactSource | null
+  seatType: SeatType | null
+  seatTypeSource: FactSource | null
   seats: number
   wheelchairSeats: number
   reducedMobilitySeats: number
@@ -157,6 +208,7 @@ export type Review = {
   rating: number // 0.5 – 5, half steps
   criteria: Record<Criterion, number> // 1 – 5
   row: string | null
+  seatPosition: SeatPosition | null
   film: string | null
   /** Set when the film came from the TMDB autocomplete. */
   filmTmdbId: number | null
@@ -167,7 +219,37 @@ export type Review = {
   helpful: number
   /** Whether the signed-in viewer is one of them. */
   markedHelpful: boolean
+  /** The view from the reviewer's seat, if they added one (and it isn't hidden). */
+  photo: SeatPhoto | null
 }
+
+/** Where in the row the reviewer sat, for "Fileira H · centro". */
+export const SEAT_POSITIONS = { left: 'esquerda', center: 'centro', right: 'direita' } as const
+export type SeatPosition = keyof typeof SEAT_POSITIONS
+export const SEAT_POSITION_IDS = Object.keys(SEAT_POSITIONS) as [SeatPosition, ...SeatPosition[]]
+
+/** 'reported' photos are hidden from everyone but moderators. */
+export type PhotoStatus = 'visible' | 'reported'
+
+export type SeatPhoto = {
+  id: string
+  width: number
+  height: number
+}
+
+/** Served by the /photos/$photoId route from R2. */
+export const photoUrl = (id: string) => `/photos/${id}`
+
+/** Sort key for rows, lettered from the screen back: A … Z, then AA, AB…; no row sorts last. */
+export function rowOrder(row: string | null) {
+  if (!row) return Number.MAX_SAFE_INTEGER
+  return [...row.toUpperCase()].reduce((n, c) => n * 26 + (c.charCodeAt(0) - 64), 0)
+}
+
+/** Photo upload limits; the browser shrinks photos to fit before sending them. */
+export const PHOTO_MAX_SIDE = 1600
+export const PHOTO_MAX_BYTES = 3 * 1024 * 1024
+export const PHOTO_TYPES = ['image/webp', 'image/jpeg'] as const
 
 export type RoomSummary = Room & {
   cinema: Cinema

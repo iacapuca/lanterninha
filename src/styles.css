@@ -1606,6 +1606,154 @@
     flex-wrap: wrap;
     gap: 6px 18px;
   }
+
+  /* Seat photos ("vista da poltrona") */
+  .seat-view-input {
+    display: grid;
+    gap: 12px;
+  }
+  .seat-view-input .segmented label {
+    width: auto;
+    padding-inline: 12px;
+    font-weight: 500;
+  }
+  .seat-view-input .segmented legend {
+    width: 120px;
+  }
+  .photo-picker {
+    display: grid;
+    gap: 8px;
+  }
+  .photo-picker p {
+    margin: 0;
+    font-size: 0.82rem;
+  }
+  .photo-drop {
+    display: grid;
+    place-items: center;
+    min-height: 120px;
+    border: 1px dashed var(--line);
+    border-radius: var(--card-radius);
+    background: var(--bg-sunken);
+    color: var(--amber);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .photo-drop:hover,
+  .photo-drop:focus-within {
+    border-color: var(--amber);
+  }
+  .photo-picker figure {
+    margin: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .photo-picker img {
+    width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    border-radius: var(--card-radius);
+    background: var(--bg-sunken);
+  }
+  .photo-picker figcaption {
+    display: flex;
+    gap: 16px;
+    font-size: 0.9rem;
+  }
+  .photo-picker label.link-button:focus-within {
+    color: var(--amber);
+  }
+  .seat-photo {
+    margin: 10px 0 12px;
+    display: grid;
+    gap: 6px;
+  }
+  .seat-photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--paper-shade);
+  }
+  .review .seat-photo {
+    max-width: 420px;
+  }
+  .seat-photo figcaption {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .seat-gallery .seat-photo figcaption {
+    color: var(--text-muted);
+  }
+  .seat-gallery .seat-photo figcaption strong {
+    color: var(--text);
+  }
+  .seat-photo-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    opacity: 0.75;
+  }
+  .seat-photo-report:hover {
+    opacity: 1;
+    color: var(--ticket-red);
+  }
+  .seat-gallery .seat-photo-report:hover {
+    color: var(--amber);
+  }
+  .seat-gallery {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 300px);
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+  .seat-gallery .seat-photo {
+    margin: 0;
+    scroll-snap-align: start;
+  }
+  .review-seat {
+    font-weight: 400;
+  }
+  .moderation-list {
+    display: grid;
+    gap: 16px;
+  }
+  .moderation-item {
+    display: grid;
+    grid-template-columns: minmax(0, 280px) 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .moderation-item img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+  .moderation-item blockquote {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  @media (max-width: 640px) {
+    .moderation-item {
+      grid-template-columns: 1fr;
+    }
+  }
 } /* @layer components */
 
 /*

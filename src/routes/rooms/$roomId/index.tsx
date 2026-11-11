@@ -7,6 +7,7 @@ import { Lanterns } from '~/components/lanterns'
 import { ReviewItem, ReviewListSkeleton } from '~/components/review-item'
 import { Ticket, ticketSerial } from '~/components/ticket'
 import { RoomFacts } from '~/components/room-facts'
+import { SeatViewGallery } from '~/components/seat-photo'
 import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { Button } from '~/components/ui/button'
 import { shareMeta } from '~/lib/site'
@@ -123,17 +124,15 @@ function RoomPage() {
             </dd>
           </div>
         </dl>
-        <RoomFacts
-          roomId={room.id}
-          values={{ format: room.format, projection: room.projection, sound: room.sound }}
-          sources={{ format: room.formatSource, projection: room.projectionSource, sound: room.soundSource }}
-          votes={room.facts.votes}
-          mine={room.facts.mine}
-        />
+        <RoomFacts room={room} votes={room.facts.votes} mine={room.facts.mine} />
       </Ticket>
 
       <Await promise={programme} fallback={<ProgrammeSkeleton />}>
         {(p) => <Programme {...p} />}
+      </Await>
+
+      <Await promise={reviews} fallback={null}>
+        {(list) => <SeatViewGallery reviews={list} />}
       </Await>
 
       <div className="split">

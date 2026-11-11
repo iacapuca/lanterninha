@@ -2,7 +2,7 @@
 // and by server function `.validator()` (enforced at the server boundary).
 // Error messages are pt-BR because they are shown to users.
 import { z } from 'zod'
-import { FORMAT_IDS, PROJECTIONS, RATINGS, SOUNDS, STATES, TAGS } from './domain'
+import { FORMAT_IDS, RATINGS, ROOM_FACTS, SEAT_POSITION_IDS, STATES, TAGS, type RoomFactField } from './domain'
 
 export const SORTS = ['rating', 'reviews', 'recent', 'name'] as const
 
@@ -78,6 +78,7 @@ export const newReviewSchema = z.object({
       .nullable()
       .default(null),
   ),
+  seatPosition: z.preprocess(emptyToUndefined, z.enum(SEAT_POSITION_IDS).nullable().default(null)),
   film: z.preprocess(emptyToUndefined, z.string().trim().max(120).nullable().default(null)),
   filmTmdbId: z.number().int().positive().nullable().default(null),
   body: z.string().trim().min(10, 'Conte um pouco mais (mín. 10 caracteres)').max(2000),
@@ -90,16 +91,24 @@ export type UpdateReview = z.infer<typeof updateReviewSchema>
 export type NewReviewInput = z.input<typeof newReviewSchema>
 
 /** A vote for one room detail; the value must be one of that field's options. */
+const factVote = <F extends RoomFactField>(field: F) =>
+  z.object({
+    roomId: z.string().min(1).max(120),
+    field: z.literal(field),
+    value: z.enum(
+      Object.keys(ROOM_FACTS[field].options) as [
+        keyof (typeof ROOM_FACTS)[F]['options'] & string,
+        ...Array<keyof (typeof ROOM_FACTS)[F]['options'] & string>,
+      ],
+    ),
+  })
+
 export const roomFactVoteSchema = z.discriminatedUnion('field', [
-  z.object({ roomId: z.string().min(1).max(120), field: z.literal('format'), value: z.enum(FORMAT_IDS) }),
-  z.object({
-    roomId: z.string().min(1).max(120),
-    field: z.literal('projection'),
-    value: z.enum(Object.keys(PROJECTIONS) as [keyof typeof PROJECTIONS, ...Array<keyof typeof PROJECTIONS>]),
-  }),
-  z.object({
-    roomId: z.string().min(1).max(120),
-    field: z.literal('sound'),
-    value: z.enum(Object.keys(SOUNDS) as [keyof typeof SOUNDS, ...Array<keyof typeof SOUNDS>]),
-  }),
+  factVote('format'),
+  factVote('imaxType'),
+  factVote('screenSize'),
+  factVote('projection'),
+  factVote('sound'),
+  factVote('threeD'),
+  factVote('seatType'),
 ])
