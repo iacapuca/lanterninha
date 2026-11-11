@@ -33,11 +33,7 @@ import {
 
 const PAGE_SIZE = 9
 
-const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const round1 = (n: number | null) => (n == null ? null : Math.round(n * 10) / 10)
 
 function average(xs: number[]) {

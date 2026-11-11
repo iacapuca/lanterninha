@@ -72,12 +72,7 @@ export function parseCsv(text: string, delimiter = ';'): Record<string, string>[
 
 // ---------- Names ----------
 
-export const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toUpperCase()
-    .trim()
+export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim()
 
 export const slugify = (s: string) =>
   s

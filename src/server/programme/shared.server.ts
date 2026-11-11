@@ -4,11 +4,7 @@
 import type { FactSource, Format, Projection, Sound } from '~/lib/domain'
 
 /** Accents out, uppercase — the form ANCINE and the portals can be compared in. */
-export const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toUpperCase()
+export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
 
 export const digits = (s: string | null | undefined) => (s ?? '').replace(/\D/g, '')
 
