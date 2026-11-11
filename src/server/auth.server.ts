@@ -5,6 +5,7 @@ import { username } from 'better-auth/plugins/username'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { USERNAME_PATTERN } from '~/lib/schemas'
 import { db } from './db/client.server'
+import { track } from './analytics.server'
 import { sendPasswordResetEmail, sendVerificationEmail } from './email.server'
 import { account, session, user, verification } from './db/schema.server'
 
@@ -41,6 +42,10 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await sendVerificationEmail(user.email, displayName(user), url)
     },
+    afterEmailVerification: async () => track('email_confirmed'),
+  },
+  databaseHooks: {
+    user: { create: { after: async () => track('signup') } },
   },
   user: {
     // LGPD: people can delete their account; reviews and votes cascade with it.

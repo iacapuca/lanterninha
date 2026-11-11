@@ -161,7 +161,7 @@ export function Programme({ linked, providers, today, showtimes, showRoom = fals
                             <li key={s.id}>
                               {s.checkoutUrl ? (
                                 <a
-                                  href={s.checkoutUrl}
+                                  href={`/go/showtime/${encodeURIComponent(s.id)}`}
                                   target="_blank"
                                   rel="noopener noreferrer nofollow"
                                   className={`${chip} text-ink hover:border-ticket-red hover:bg-ticket-red hover:text-paper`}

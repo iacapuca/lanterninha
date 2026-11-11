@@ -1,5 +1,9 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
+import { Link, createFileRoute, useLocation, useRouteContext } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
+import { toast } from 'sonner'
 import { getUserProfile } from '~/functions/rooms.functions'
+import { setFollow } from '~/functions/social.functions'
 import { formatRating, pluralize } from '~/lib/format'
 import { BADGES, badgeImage } from '~/lib/domain'
 import { Lanterns } from '~/components/lanterns'
@@ -46,6 +50,7 @@ function ProfilePage() {
               · média {formatRating(profile.average)} <Lanterns rating={profile.average} size={14} />
             </p>
           )}
+          <FollowBar profile={profile} />
         </div>
       </header>
 
@@ -119,5 +124,59 @@ function ProfilePage() {
         </section>
       )}
     </>
+  )
+}
+
+/** Followers, following and "útil" received, plus Seguir/Seguindo for other signed-in readers. */
+function FollowBar({ profile }: { profile: ReturnType<typeof Route.useLoaderData> }) {
+  const { viewer } = useRouteContext({ from: '__root__' })
+  const location = useLocation()
+  const toggle = useServerFn(setFollow)
+  const [state, setState] = useState({ followers: profile.followers, following: profile.viewerFollows })
+  const [pending, setPending] = useState(false)
+
+  return (
+    <div className="profile-social">
+      <span>
+        <strong>{state.followers}</strong> {state.followers === 1 ? 'seguidor' : 'seguidores'}
+      </span>
+      <span>
+        <strong>{profile.following}</strong> seguindo
+      </span>
+      {profile.helpfulReceived > 0 && (
+        <span>
+          <strong>{profile.helpfulReceived}</strong> {profile.helpfulReceived === 1 ? 'voto útil' : 'votos úteis'}
+        </span>
+      )}
+      {profile.isViewer ? null : !viewer ? (
+        <Button asChild size="sm">
+          <Link to="/sign-in" search={{ redirect: location.href }}>
+            Seguir
+          </Link>
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant={state.following ? 'outline' : 'default'}
+          aria-pressed={state.following}
+          disabled={pending}
+          onClick={async () => {
+            const on = !state.following
+            setPending(true)
+            try {
+              const result = await toggle({ data: { username: profile.username, on } })
+              setState({ followers: result.followers, following: on })
+              if (on) toast(`Agora você segue @${profile.username}. As avaliações aparecem em Seguindo.`)
+            } catch {
+              toast.error('Não foi possível agora. Tente de novo.')
+            } finally {
+              setPending(false)
+            }
+          }}
+        >
+          {state.following ? 'Seguindo' : 'Seguir'}
+        </Button>
+      )}
+    </div>
   )
 }

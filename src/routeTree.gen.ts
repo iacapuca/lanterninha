@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as NearbyRouteImport } from './routes/nearby'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -21,15 +22,21 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as CinemasIndexRouteImport } from './routes/cinemas/index'
 import { Route as CinemasCinemaIdRouteImport } from './routes/cinemas/$cinemaId'
+import { Route as MelhoresSalasIndexRouteImport } from './routes/melhores-salas/index'
 import { Route as OgSiteRouteImport } from './routes/og/site'
 import { Route as PostersFilmIdRouteImport } from './routes/posters/$filmId'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
 import { Route as UsersUsernameRouteImport } from './routes/users/$username'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as GoShowtimeShowtimeIdRouteImport } from './routes/go/showtime.$showtimeId'
+import { Route as MelhoresSalasPlaceIndexRouteImport } from './routes/melhores-salas/$place/index'
+import { Route as MelhoresSalasPlaceFormatRouteImport } from './routes/melhores-salas/$place/$format'
 import { Route as OgCinemaCinemaIdRouteImport } from './routes/og/cinema.$cinemaId'
 import { Route as OgRoomRoomIdRouteImport } from './routes/og/room.$roomId'
 import { Route as RoomsRoomIdIndexRouteImport } from './routes/rooms/$roomId/index'
 import { Route as RoomsRoomIdReviewRouteImport } from './routes/rooms/$roomId/review'
+import { Route as OgRankingPlaceIndexRouteImport } from './routes/og/ranking/$place/index'
+import { Route as OgRankingPlaceFormatRouteImport } from './routes/og/ranking/$place/$format'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -91,6 +103,11 @@ const CinemasCinemaIdRoute = CinemasCinemaIdRouteImport.update({
   path: '/cinemas/$cinemaId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MelhoresSalasIndexRoute = MelhoresSalasIndexRouteImport.update({
+  id: '/melhores-salas/',
+  path: '/melhores-salas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OgSiteRoute = OgSiteRouteImport.update({
   id: '/og/site',
   path: '/og/site',
@@ -116,6 +133,22 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoShowtimeShowtimeIdRoute = GoShowtimeShowtimeIdRouteImport.update({
+  id: '/go/showtime/$showtimeId',
+  path: '/go/showtime/$showtimeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MelhoresSalasPlaceIndexRoute = MelhoresSalasPlaceIndexRouteImport.update({
+  id: '/melhores-salas/$place/',
+  path: '/melhores-salas/$place/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MelhoresSalasPlaceFormatRoute =
+  MelhoresSalasPlaceFormatRouteImport.update({
+    id: '/melhores-salas/$place/$format',
+    path: '/melhores-salas/$place/$format',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OgCinemaCinemaIdRoute = OgCinemaCinemaIdRouteImport.update({
   id: '/og/cinema/$cinemaId',
   path: '/og/cinema/$cinemaId',
@@ -136,10 +169,21 @@ const RoomsRoomIdReviewRoute = RoomsRoomIdReviewRouteImport.update({
   path: '/rooms/$roomId/review',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OgRankingPlaceIndexRoute = OgRankingPlaceIndexRouteImport.update({
+  id: '/og/ranking/$place/',
+  path: '/og/ranking/$place/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgRankingPlaceFormatRoute = OgRankingPlaceFormatRouteImport.update({
+  id: '/og/ranking/$place/$format',
+  path: '/og/ranking/$place/$format',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/feed': typeof FeedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
   '/privacy': typeof PrivacyRoute
@@ -153,16 +197,23 @@ export interface FileRoutesByFullPath {
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
+  '/melhores-salas/': typeof MelhoresSalasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/go/showtime/$showtimeId': typeof GoShowtimeShowtimeIdRoute
+  '/melhores-salas/$place/$format': typeof MelhoresSalasPlaceFormatRoute
   '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
   '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
+  '/melhores-salas/$place/': typeof MelhoresSalasPlaceIndexRoute
   '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
+  '/og/ranking/$place/$format': typeof OgRankingPlaceFormatRoute
+  '/og/ranking/$place/': typeof OgRankingPlaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/feed': typeof FeedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
   '/privacy': typeof PrivacyRoute
@@ -176,17 +227,24 @@ export interface FileRoutesByTo {
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas': typeof CinemasIndexRoute
+  '/melhores-salas': typeof MelhoresSalasIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/go/showtime/$showtimeId': typeof GoShowtimeShowtimeIdRoute
+  '/melhores-salas/$place/$format': typeof MelhoresSalasPlaceFormatRoute
   '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
   '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
+  '/melhores-salas/$place': typeof MelhoresSalasPlaceIndexRoute
   '/rooms/$roomId': typeof RoomsRoomIdIndexRoute
+  '/og/ranking/$place/$format': typeof OgRankingPlaceFormatRoute
+  '/og/ranking/$place': typeof OgRankingPlaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/feed': typeof FeedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/nearby': typeof NearbyRoute
   '/privacy': typeof PrivacyRoute
@@ -200,18 +258,25 @@ export interface FileRoutesById {
   '/posters/$filmId': typeof PostersFilmIdRoute
   '/users/$username': typeof UsersUsernameRoute
   '/cinemas/': typeof CinemasIndexRoute
+  '/melhores-salas/': typeof MelhoresSalasIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/go/showtime/$showtimeId': typeof GoShowtimeShowtimeIdRoute
+  '/melhores-salas/$place/$format': typeof MelhoresSalasPlaceFormatRoute
   '/og/cinema/$cinemaId': typeof OgCinemaCinemaIdRoute
   '/og/room/$roomId': typeof OgRoomRoomIdRoute
   '/rooms/$roomId/review': typeof RoomsRoomIdReviewRoute
+  '/melhores-salas/$place/': typeof MelhoresSalasPlaceIndexRoute
   '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
+  '/og/ranking/$place/$format': typeof OgRankingPlaceFormatRoute
+  '/og/ranking/$place/': typeof OgRankingPlaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/account'
+    | '/feed'
     | '/forgot-password'
     | '/nearby'
     | '/privacy'
@@ -225,16 +290,23 @@ export interface FileRouteTypes {
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
+    | '/melhores-salas/'
     | '/rooms/'
     | '/api/auth/$'
+    | '/go/showtime/$showtimeId'
+    | '/melhores-salas/$place/$format'
     | '/og/cinema/$cinemaId'
     | '/og/room/$roomId'
     | '/rooms/$roomId/review'
+    | '/melhores-salas/$place/'
     | '/rooms/$roomId/'
+    | '/og/ranking/$place/$format'
+    | '/og/ranking/$place/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/account'
+    | '/feed'
     | '/forgot-password'
     | '/nearby'
     | '/privacy'
@@ -248,16 +320,23 @@ export interface FileRouteTypes {
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas'
+    | '/melhores-salas'
     | '/rooms'
     | '/api/auth/$'
+    | '/go/showtime/$showtimeId'
+    | '/melhores-salas/$place/$format'
     | '/og/cinema/$cinemaId'
     | '/og/room/$roomId'
     | '/rooms/$roomId/review'
+    | '/melhores-salas/$place'
     | '/rooms/$roomId'
+    | '/og/ranking/$place/$format'
+    | '/og/ranking/$place'
   id:
     | '__root__'
     | '/'
     | '/account'
+    | '/feed'
     | '/forgot-password'
     | '/nearby'
     | '/privacy'
@@ -271,17 +350,24 @@ export interface FileRouteTypes {
     | '/posters/$filmId'
     | '/users/$username'
     | '/cinemas/'
+    | '/melhores-salas/'
     | '/rooms/'
     | '/api/auth/$'
+    | '/go/showtime/$showtimeId'
+    | '/melhores-salas/$place/$format'
     | '/og/cinema/$cinemaId'
     | '/og/room/$roomId'
     | '/rooms/$roomId/review'
+    | '/melhores-salas/$place/'
     | '/rooms/$roomId/'
+    | '/og/ranking/$place/$format'
+    | '/og/ranking/$place/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  FeedRoute: typeof FeedRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   NearbyRoute: typeof NearbyRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -295,12 +381,18 @@ export interface RootRouteChildren {
   PostersFilmIdRoute: typeof PostersFilmIdRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
   CinemasIndexRoute: typeof CinemasIndexRoute
+  MelhoresSalasIndexRoute: typeof MelhoresSalasIndexRoute
   RoomsIndexRoute: typeof RoomsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  GoShowtimeShowtimeIdRoute: typeof GoShowtimeShowtimeIdRoute
+  MelhoresSalasPlaceFormatRoute: typeof MelhoresSalasPlaceFormatRoute
   OgCinemaCinemaIdRoute: typeof OgCinemaCinemaIdRoute
   OgRoomRoomIdRoute: typeof OgRoomRoomIdRoute
   RoomsRoomIdReviewRoute: typeof RoomsRoomIdReviewRoute
+  MelhoresSalasPlaceIndexRoute: typeof MelhoresSalasPlaceIndexRoute
   RoomsRoomIdIndexRoute: typeof RoomsRoomIdIndexRoute
+  OgRankingPlaceFormatRoute: typeof OgRankingPlaceFormatRoute
+  OgRankingPlaceIndexRoute: typeof OgRankingPlaceIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -317,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -389,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CinemasCinemaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/melhores-salas/': {
+      id: '/melhores-salas/'
+      path: '/melhores-salas'
+      fullPath: '/melhores-salas/'
+      preLoaderRoute: typeof MelhoresSalasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og/site': {
       id: '/og/site'
       path: '/og/site'
@@ -424,6 +530,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/go/showtime/$showtimeId': {
+      id: '/go/showtime/$showtimeId'
+      path: '/go/showtime/$showtimeId'
+      fullPath: '/go/showtime/$showtimeId'
+      preLoaderRoute: typeof GoShowtimeShowtimeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/melhores-salas/$place/': {
+      id: '/melhores-salas/$place/'
+      path: '/melhores-salas/$place'
+      fullPath: '/melhores-salas/$place/'
+      preLoaderRoute: typeof MelhoresSalasPlaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/melhores-salas/$place/$format': {
+      id: '/melhores-salas/$place/$format'
+      path: '/melhores-salas/$place/$format'
+      fullPath: '/melhores-salas/$place/$format'
+      preLoaderRoute: typeof MelhoresSalasPlaceFormatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og/cinema/$cinemaId': {
       id: '/og/cinema/$cinemaId'
       path: '/og/cinema/$cinemaId'
@@ -452,12 +579,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsRoomIdReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/ranking/$place/': {
+      id: '/og/ranking/$place/'
+      path: '/og/ranking/$place'
+      fullPath: '/og/ranking/$place/'
+      preLoaderRoute: typeof OgRankingPlaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/ranking/$place/$format': {
+      id: '/og/ranking/$place/$format'
+      path: '/og/ranking/$place/$format'
+      fullPath: '/og/ranking/$place/$format'
+      preLoaderRoute: typeof OgRankingPlaceFormatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  FeedRoute: FeedRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   NearbyRoute: NearbyRoute,
   PrivacyRoute: PrivacyRoute,
@@ -471,12 +613,18 @@ const rootRouteChildren: RootRouteChildren = {
   PostersFilmIdRoute: PostersFilmIdRoute,
   UsersUsernameRoute: UsersUsernameRoute,
   CinemasIndexRoute: CinemasIndexRoute,
+  MelhoresSalasIndexRoute: MelhoresSalasIndexRoute,
   RoomsIndexRoute: RoomsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  GoShowtimeShowtimeIdRoute: GoShowtimeShowtimeIdRoute,
+  MelhoresSalasPlaceFormatRoute: MelhoresSalasPlaceFormatRoute,
   OgCinemaCinemaIdRoute: OgCinemaCinemaIdRoute,
   OgRoomRoomIdRoute: OgRoomRoomIdRoute,
   RoomsRoomIdReviewRoute: RoomsRoomIdReviewRoute,
+  MelhoresSalasPlaceIndexRoute: MelhoresSalasPlaceIndexRoute,
   RoomsRoomIdIndexRoute: RoomsRoomIdIndexRoute,
+  OgRankingPlaceFormatRoute: OgRankingPlaceFormatRoute,
+  OgRankingPlaceIndexRoute: OgRankingPlaceIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

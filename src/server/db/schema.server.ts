@@ -191,6 +191,44 @@ export const review = sqliteTable(
   ],
 )
 
+/** "Útil": one reader found one review helpful. Authors can't mark their own. */
+export const reviewHelpful = sqliteTable(
+  'review_helpful',
+  {
+    id: text('id').primaryKey(),
+    reviewId: text('review_id')
+      .notNull()
+      .references(() => review.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('review_helpful_one_vote_idx').on(t.reviewId, t.userId),
+    index('review_helpful_user_idx').on(t.userId),
+  ],
+)
+
+/** One user following another; their reviews make up the follower's feed (/feed). */
+export const follow = sqliteTable(
+  'follow',
+  {
+    id: text('id').primaryKey(),
+    followerId: text('follower_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    followingId: text('following_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('follow_pair_idx').on(t.followerId, t.followingId),
+    index('follow_following_idx').on(t.followingId),
+  ],
+)
+
 // ---------- Provider programme (synced by the scheduled job) ----------
 
 /** A city a provider sells in; Ingresso.com identifies them by id, Velox Tickets by URL name. */

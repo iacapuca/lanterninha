@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Link, useRouteContext, useRouter } from '@tanstack/react-router'
+import { Link, useLocation, useRouteContext, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
+import { ThumbsUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { deleteReview } from '~/functions/reviews.functions'
+import { setReviewHelpful } from '~/functions/social.functions'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -84,7 +86,10 @@ export function ReviewItem({ review }: { review: Review | ReviewWithRoom }) {
             ))}
           </ul>
         )}
-        {mine && <OwnReviewActions review={review} />}
+        <div className="review-actions">
+          <HelpfulButton review={review} mine={mine} signedIn={!!viewer} />
+          {mine && <OwnReviewActions review={review} />}
+        </div>
       </Ticket>
     </article>
   )
@@ -96,7 +101,7 @@ function OwnReviewActions({ review }: { review: Review }) {
   const remove = useServerFn(deleteReview)
   const [pending, setPending] = useState(false)
   return (
-    <div className="review-actions">
+    <>
       <Link to="/rooms/$roomId/review" params={{ roomId: review.roomId }} search={{ edit: review.id }}>
         Editar
       </Link>
@@ -139,7 +144,59 @@ function OwnReviewActions({ review }: { review: Review }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
+  )
+}
+
+/**
+ * "Útil": readers vouch for a review. Optimistic, since it's a cheap toggle;
+ * authors see their count but can't mark their own, and visitors are sent to sign in.
+ */
+function HelpfulButton({ review, mine, signedIn }: { review: Review; mine: boolean; signedIn: boolean }) {
+  const toggle = useServerFn(setReviewHelpful)
+  const location = useLocation()
+  const [state, setState] = useState({ helpful: review.helpful, marked: review.markedHelpful })
+  const [pending, setPending] = useState(false)
+  const label = state.helpful > 0 ? `Útil · ${state.helpful}` : 'Útil'
+
+  if (mine) {
+    return state.helpful > 0 ? (
+      <span className="review-helpful" title="Pessoas que acharam sua avaliação útil">
+        <ThumbsUp size={13} aria-hidden="true" /> {label}
+      </span>
+    ) : null
+  }
+  if (!signedIn) {
+    return (
+      <Link to="/sign-in" search={{ redirect: location.href }} className="review-helpful">
+        <ThumbsUp size={13} aria-hidden="true" /> {label}
+      </Link>
+    )
+  }
+  return (
+    <button
+      type="button"
+      className="review-helpful"
+      aria-pressed={state.marked}
+      disabled={pending}
+      onClick={async () => {
+        const before = state
+        const on = !state.marked
+        setState({ helpful: state.helpful + (on ? 1 : -1), marked: on })
+        setPending(true)
+        try {
+          const result = await toggle({ data: { reviewId: review.id, on } })
+          setState({ helpful: result.helpful, marked: result.markedHelpful })
+        } catch {
+          setState(before)
+          toast.error('Não foi possível marcar agora.')
+        } finally {
+          setPending(false)
+        }
+      }}
+    >
+      <ThumbsUp size={13} aria-hidden="true" /> {label}
+    </button>
   )
 }
 

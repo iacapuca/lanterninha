@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { earnedBadges, timeZoneOf, type ContributionStats } from '~/lib/domain'
+import { citySlug, earnedBadges, timeZoneOf, type ContributionStats } from '~/lib/domain'
 import { formatRating, pluralize } from '~/lib/format'
 import { exploreSearchSchema, newReviewSchema } from '~/lib/schemas'
 
@@ -59,5 +59,13 @@ describe('schemas', () => {
     expect(newReviewSchema.parse(review)).toMatchObject({ row: 'G', film: null })
     expect(newReviewSchema.safeParse({ ...review, rating: 4.2 }).success).toBe(false)
     expect(newReviewSchema.safeParse({ ...review, body: 'curto' }).success).toBe(false)
+  })
+})
+
+describe('city slugs', () => {
+  it('fold accents and punctuation, and keep the state so namesakes differ', () => {
+    expect(citySlug('São Paulo', 'SP')).toBe('sao-paulo-sp')
+    expect(citySlug("Santa Bárbara d'Oeste", 'SP')).toBe('santa-barbara-d-oeste-sp')
+    expect(citySlug('Valença', 'BA')).not.toBe(citySlug('Valença', 'RJ'))
   })
 })

@@ -14,7 +14,7 @@ export const Route = createFileRoute('/privacy')({
   component: PrivacyPage,
 })
 
-export const LEGAL_UPDATED_AT = '15 de outubro de 2026'
+export const LEGAL_UPDATED_AT = '24 de outubro de 2026'
 export const CONTACT_EMAIL = 'contato@lanterninha.review'
 
 function PrivacyPage() {
@@ -40,6 +40,15 @@ function PrivacyPage() {
           com o seu @.
         </li>
         <li>
+          <strong>Interações:</strong> quem você segue e quais avaliações você marcou como “útil”. O número de
+          seguidores e de votos úteis é público; a lista de quem marcou cada avaliação, não.
+        </li>
+        <li>
+          <strong>Estatísticas de uso:</strong> contamos visitas às páginas (Cloudflare Web Analytics) e ações como
+          “avaliação publicada” ou “clique para comprar ingresso”, com a sala ou cidade envolvida. Essas contagens não
+          usam cookies e não guardam seu @, e-mail ou IP.
+        </li>
+        <li>
           <strong>Sessão de acesso:</strong> quando você entra, guardamos um cookie de sessão e, junto da sessão, o
           endereço IP e o navegador usados, para manter você conectado e proteger a conta.
         </li>
@@ -60,20 +69,24 @@ function PrivacyPage() {
         <li>Enviar e-mails de serviço: confirmação de e-mail e redefinição de senha. Não enviamos propaganda.</li>
         <li>Proteger o site contra abuso, spam e acessos indevidos (legítimo interesse).</li>
         <li>Calcular as notas das salas e as badges da sua coleção.</li>
+        <li>
+          Entender, em números agregados, como o site é usado e o que melhorar, e mostrar aos sites de ingressos quantas
+          pessoas encaminhamos (legítimo interesse).
+        </li>
       </ul>
 
       <h2>Cookies</h2>
       <p>
         Usamos apenas o cookie necessário para manter você conectado. Não usamos cookies de publicidade nem de
-        rastreamento.
+        rastreamento, e as estatísticas de uso funcionam sem cookies.
       </p>
 
       <h2>Com quem compartilhamos</h2>
       <p>Não vendemos nem alugamos dados. Alguns serviços operam partes do site para nós:</p>
       <ul>
         <li>
-          <strong>Cloudflare</strong> — hospedagem, banco de dados e envio de e-mails. Os dados podem ser processados
-          fora do Brasil, com as garantias previstas na LGPD para transferência internacional.
+          <strong>Cloudflare</strong> — hospedagem, banco de dados, envio de e-mails e estatísticas de uso. Os dados
+          podem ser processados fora do Brasil, com as garantias previstas na LGPD para transferência internacional.
         </li>
         <li>
           <strong>OpenFreeMap</strong> (mapa de “Perto de mim”) e <strong>Google Fonts</strong> (fontes do site) —

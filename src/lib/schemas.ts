@@ -27,7 +27,7 @@ export type ExploreSearch = z.infer<typeof exploreSearchSchema>
 /** Defaults are omitted from URLs so canonical links stay clean. */
 export const EXPLORE_DEFAULTS = { sort: 'rating', page: 1 } as const
 
-export const REVIEW_SORTS = ['recent', 'best', 'worst'] as const
+export const REVIEW_SORTS = ['recent', 'helpful', 'best', 'worst'] as const
 export const roomSearchSchema = z.object({
   reviews: z.enum(REVIEW_SORTS).default('recent').catch('recent'),
 })

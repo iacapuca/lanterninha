@@ -204,6 +204,56 @@ To redo one: delete `db/badges/raw/<id>.jpg`, then
 `CLOUDFLARE_API_TOKEN=$(pnpm exec wrangler auth token) node db/badges/generate.ts <id>`,
 and review with `node db/badges/sheet.ts /tmp/badges.png`.
 
+### Social: "útil", follows and the feed
+
+Signed-in readers can mark someone else's review as **útil** (`review_helpful`,
+one mark per reader and review; authors can't mark their own) and **follow**
+other people (`follow`). Room pages sort reviews by "Mais úteis", profiles show
+followers, following and "votos úteis" received, and `/feed` (in the account
+menu, "Seguindo") lists the newest reviews from the people you follow, with
+"Quem seguir" suggestions (most-marked reviewers you don't follow yet). Counts
+are attached to review lists in one grouped query (`withHelpful` in
+`store.server.ts`, chunked under D1's 100-parameter limit). Both tables
+cascade with the user and the review.
+
+### Rankings (/melhores-salas)
+
+`/melhores-salas` is the hub (national top 10, every city and format with a
+ranking); `/melhores-salas/<place>` and `/melhores-salas/<place>/<format>` are
+the rankings, where `<place>` is `brasil` or a city slug with its state
+(`sao-paulo-sp`, so namesakes like Valença/BA and Valença/RJ don't collide) and
+`<format>` a format id (`imax`, `4dx`…). Rooms are ordered by a **Bayesian
+average** (`rankRooms`: the room's reviews plus 3 "phantom" reviews at the
+site-wide mean), so one 5-🔦 review doesn't outrank thirty 4.6s. Any city with
+a cinema has a page; empty ones say so and are `noindex`, and only rankings with
+reviewed rooms go into the sitemap. Share cards: `/og/ranking/<place>[/<format>]`.
+
+### Analytics
+
+Two cookieless layers, so there's no consent banner (see `/privacy`):
+
+- **Page views:** Cloudflare Web Analytics, turned on in the dashboard for the
+  `lanterninha.review` zone (no code).
+- **Product events:** Workers Analytics Engine, the `ANALYTICS` binding
+  (dataset `lanterninha_events`), written from the server by `track()` in
+  `src/server/analytics.server.ts`. No user ids, emails or IPs. Events:
+  `signup`, `email_confirmed`, `review_draft_started`, `review_created`,
+  `fact_voted`, `checkout_click`, `search_empty`, `review_marked_helpful`,
+  `user_followed`. `blob1` is the event name and the other blobs follow the
+  field list in `EVENTS`.
+
+Session times link to `/go/showtime/<id>`, which records `checkout_click`
+(provider, cinema, room, film, city) and redirects to the provider's checkout,
+so the count of ticket buyers sent to each partner survives ad blockers. Query
+with the [SQL API](https://developers.cloudflare.com/analytics/analytics-engine/sql-api/):
+
+```sh
+curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine/sql" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d "SELECT blob2 AS provider, SUM(_sample_interval) AS clicks FROM lanterninha_events
+      WHERE blob1 = 'checkout_click' AND timestamp > NOW() - INTERVAL '7' DAY GROUP BY provider"
+```
+
 ### Auth
 
 Better Auth with email + password and the `username` plugin. You register with
@@ -277,6 +327,8 @@ params are coerced to defaults, and defaults are stripped from URLs.
 | `/rooms/$roomId/review`                        | `data-only`      | Auth and room lookup run on the server; the form restores a localStorage draft, so it renders on the client only |
 | `/nearby`                                      | `false`          | Built on the Geolocation API and has no SEO value                                                                |
 | `/cinemas/$id`, `/users/$username`, `/sign-in` | full             | Small pages, nothing worth deferring                                                                             |
+| `/melhores-salas/…`                            | full             | Shareable, indexable rankings                                                                                    |
+| `/feed`                                        | full             | Private (follows); `noindex`, disallowed in robots.txt                                                           |
 | `/sitemap.xml`, `/robots.txt`                  | server routes    | Raw HTTP handlers                                                                                                |
 
 Crawlers get fully resolved HTML; browsers get the shell first and the streamed
@@ -285,17 +337,16 @@ sections afterwards.
 ### Deployment target
 
 `vite.config.ts` uses `@cloudflare/vite-plugin`, and `wrangler.jsonc` points
-`main` at `@tanstack/react-start/server-entry`. Only two modules import
-`cloudflare:workers`: `server/db/client.server.ts` (the D1 binding) and
-`server/auth.server.ts` (the secret). Moving to Node, Vercel or Netlify means
-swapping the Vite plugin and those two modules (for example, D1 for libSQL or
-Postgres through Drizzle), not the routes, loaders or server functions.
+`main` at `src/server.ts` (Start's handler plus the cron syncs). Only
+`*.server.ts` modules import `cloudflare:workers`, for bindings (D1, email,
+Analytics Engine) and secrets. Moving to Node, Vercel or Netlify means swapping
+the Vite plugin and those modules (for example, D1 for libSQL or Postgres
+through Drizzle), not the routes, loaders or server functions.
 
 Secrets: `wrangler secret put BETTER_AUTH_SECRET`. The D1 binding is `DB`, and `pnpm cf-typegen` regenerates `worker-configuration.d.ts`.
 
 ## Known limitations
 
-- No email verification or password reset yet (both need an email provider).
 - Coordinates outside state capitals are the city centre, so distances are
   approximate (shown with ~). Run `node db/geo/geocode.ts --all` to geocode
   everything (about 30 minutes at Nominatim's rate limit).

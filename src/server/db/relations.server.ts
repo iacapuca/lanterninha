@@ -9,6 +9,9 @@ export const relations = defineRelations(schema, (r) => ({
     sessions: r.many.session(),
     accounts: r.many.account(),
     roomFacts: r.many.roomFact(),
+    helpfulMarks: r.many.reviewHelpful(),
+    following: r.many.follow({ from: r.user.id, to: r.follow.followerId, alias: 'follower' }),
+    followers: r.many.follow({ from: r.user.id, to: r.follow.followingId, alias: 'following' }),
   },
   session: {
     user: r.one.user({ from: r.session.userId, to: r.user.id, optional: false }),
@@ -41,5 +44,14 @@ export const relations = defineRelations(schema, (r) => ({
   review: {
     room: r.one.room({ from: r.review.roomId, to: r.room.id, optional: false }),
     user: r.one.user({ from: r.review.userId, to: r.user.id, optional: false }),
+    helpfulMarks: r.many.reviewHelpful(),
+  },
+  reviewHelpful: {
+    review: r.one.review({ from: r.reviewHelpful.reviewId, to: r.review.id, optional: false }),
+    user: r.one.user({ from: r.reviewHelpful.userId, to: r.user.id, optional: false }),
+  },
+  follow: {
+    follower: r.one.user({ from: r.follow.followerId, to: r.user.id, optional: false, alias: 'follower' }),
+    following: r.one.user({ from: r.follow.followingId, to: r.user.id, optional: false, alias: 'following' }),
   },
 }))

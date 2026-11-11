@@ -1,10 +1,11 @@
 // The only module that queries the database. The `.server.ts` suffix puts it
 // behind Start's import protection: importing it from client code fails the build.
-import { and, asc, count, desc, eq, getColumns, gte, isNotNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, count, desc, eq, getColumns, gte, inArray, isNotNull, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CinemaSummary,
   ContributionStats,
   Criterion,
+  Format,
   Review,
   ReviewWithRoom,
   RoomFactField,
@@ -16,7 +17,19 @@ import type {
 import { CRITERION_IDS, FORMAT_IDS, RATINGS, timeZoneOf } from '~/lib/domain'
 import type { ExploreSearch, NewReview, UpdateReview } from '~/lib/schemas'
 import { db } from './db/client.server'
-import { cinema, film, filmPoster, review, room, roomFact, showtime } from './db/schema.server'
+import {
+  cinema,
+  film,
+  filmPoster,
+  follow,
+  providerTheater,
+  review,
+  reviewHelpful,
+  room,
+  roomFact,
+  showtime,
+  user,
+} from './db/schema.server'
 
 const PAGE_SIZE = 9
 
@@ -209,6 +222,8 @@ const withRoom = {
 const withRoomAndCinema = { ...withAuthor, ...withRoom } as const
 
 type ReviewRecord = typeof review.$inferSelect & { user: { username: string | null; name: string } }
+/** A review before its "útil" counts are added (see withHelpful). */
+type ReviewBase = Omit<Review, 'helpful' | 'markedHelpful'>
 
 function toReview({
   picture,
@@ -220,7 +235,7 @@ function toReview({
   userId: _userId,
   day: _day,
   ...rest
-}: ReviewRecord): Review {
+}: ReviewRecord): ReviewBase {
   return {
     ...rest,
     username: author.username ?? author.name,
@@ -234,32 +249,66 @@ function toReviewWithRoom({
   ...rest
 }: ReviewRecord & {
   room: ReviewWithRoom['room'] & { cinema: ReviewWithRoom['cinema'] }
-}): ReviewWithRoom {
+}) {
   return { ...toReview(rest), room: r, cinema: c }
+}
+
+/** D1 binds at most 100 parameters per query. */
+function chunks<T>(xs: T[], size = 90) {
+  return Array.from({ length: Math.ceil(xs.length / size) }, (_, i) => xs.slice(i * size, (i + 1) * size))
+}
+
+/** Adds each review's "útil" count, and whether the viewer marked it, in one grouped query per 90 reviews. */
+async function withHelpful<R extends ReviewBase>(reviews: R[], viewerId?: string): Promise<Array<R & Review>> {
+  const counts = new Map<string, { n: number; mine: boolean }>()
+  const batches = await Promise.all(
+    chunks(reviews.map((r) => r.id)).map((ids) =>
+      db
+        .select({
+          reviewId: reviewHelpful.reviewId,
+          n: count(),
+          mine: sql<number>`max(${reviewHelpful.userId} = ${viewerId ?? ''})`,
+        })
+        .from(reviewHelpful)
+        .where(inArray(reviewHelpful.reviewId, ids))
+        .groupBy(reviewHelpful.reviewId),
+    ),
+  )
+  for (const row of batches.flat()) counts.set(row.reviewId, { n: row.n, mine: Boolean(row.mine) })
+  return reviews.map((r) => ({
+    ...r,
+    helpful: counts.get(r.id)?.n ?? 0,
+    markedHelpful: counts.get(r.id)?.mine ?? false,
+  }))
 }
 
 const REVIEW_ORDER = {
   recent: { createdAt: 'desc' },
+  // Re-sorted by "útil" count once the counts are in (see getRoomReviews).
+  helpful: { createdAt: 'desc' },
   best: { rating: 'desc', createdAt: 'desc' },
   worst: { rating: 'asc', createdAt: 'desc' },
 } as const
 
-export async function getRoomReviews(roomId: string, sort: keyof typeof REVIEW_ORDER) {
+export async function getRoomReviews(roomId: string, sort: keyof typeof REVIEW_ORDER, viewerId?: string) {
   const rows = await db.query.review.findMany({
     where: { roomId },
     orderBy: REVIEW_ORDER[sort],
     with: withAuthor,
   })
-  return rows.map(toReview)
+  const reviews = await withHelpful(rows.map(toReview), viewerId)
+  // Stable sort: ties stay newest first.
+  if (sort === 'helpful') reviews.sort((a, b) => b.helpful - a.helpful)
+  return reviews
 }
 
-export async function getRecentReviews(limit: number) {
+export async function getRecentReviews(limit: number, viewerId?: string): Promise<ReviewWithRoom[]> {
   const rows = await db.query.review.findMany({
     orderBy: { createdAt: 'desc' },
     limit,
     with: withRoomAndCinema,
   })
-  return rows.map(toReviewWithRoom)
+  return withHelpful(rows.map(toReviewWithRoom), viewerId)
 }
 
 export async function getRoomStats(roomId: string): Promise<RoomStats> {
@@ -300,23 +349,128 @@ export async function getRoomStats(roomId: string): Promise<RoomStats> {
 }
 
 /** Null only when the user doesn't exist; a user with no reviews gets an empty diary. */
-export async function getUserProfile(username: string) {
+export async function getUserProfile(username: string, viewerId?: string) {
   const found = await db.query.user.findFirst({
     where: { username },
-    columns: { username: true, name: true },
+    columns: { id: true, username: true, name: true },
     with: {
       reviews: { orderBy: { createdAt: 'desc' }, with: withRoom },
     },
   })
   if (!found) return null
   const author = { username: found.username, name: found.name }
-  const reviews = found.reviews.map((r) => toReviewWithRoom({ ...r, user: author }))
+  const reviews: ReviewWithRoom[] = await withHelpful(
+    found.reviews.map((r) => toReviewWithRoom({ ...r, user: author })),
+    viewerId,
+  )
+  const [[followers], [following], viewerFollows] = await db.batch([
+    db.select({ n: count() }).from(follow).where(eq(follow.followingId, found.id)),
+    db.select({ n: count() }).from(follow).where(eq(follow.followerId, found.id)),
+    db
+      .select({ id: follow.id })
+      .from(follow)
+      .where(and(eq(follow.followerId, viewerId ?? ''), eq(follow.followingId, found.id)))
+      .limit(1),
+  ])
   return {
+    userId: found.id,
     username,
     reviews,
     average: average(reviews.map((r) => r.rating)),
     cities: [...new Set(reviews.map((r) => r.cinema.city))],
+    followers: followers?.n ?? 0,
+    following: following?.n ?? 0,
+    /** "Útil" marks across all of this user's reviews. */
+    helpfulReceived: reviews.reduce((sum, r) => sum + r.helpful, 0),
+    viewerFollows: viewerFollows.length > 0,
   }
+}
+
+// ---------- Social: "útil" marks, follows, feed ----------
+
+export type HelpfulResult =
+  | { ok: true; helpful: number; markedHelpful: boolean }
+  | { ok: false; reason: 'unknown-review' | 'own-review' }
+
+/** Marks (or unmarks) a review as helpful; returns its new count. */
+export async function setReviewHelpful(userId: string, reviewId: string, on: boolean): Promise<HelpfulResult> {
+  const [target] = await db.select({ authorId: review.userId }).from(review).where(eq(review.id, reviewId)).limit(1)
+  if (!target) return { ok: false, reason: 'unknown-review' }
+  if (target.authorId === userId) return { ok: false, reason: 'own-review' }
+  if (on) {
+    await db
+      .insert(reviewHelpful)
+      .values({ id: crypto.randomUUID(), reviewId, userId, createdAt: new Date() })
+      .onConflictDoNothing()
+  } else {
+    await db.delete(reviewHelpful).where(and(eq(reviewHelpful.reviewId, reviewId), eq(reviewHelpful.userId, userId)))
+  }
+  const [{ n }] = (await db.select({ n: count() }).from(reviewHelpful).where(eq(reviewHelpful.reviewId, reviewId))) as [
+    { n: number },
+  ]
+  return { ok: true, helpful: n, markedHelpful: on }
+}
+
+export type FollowResult = { ok: true; followers: number } | { ok: false; reason: 'unknown-user' | 'self' }
+
+export async function setFollow(followerId: string, username: string, on: boolean): Promise<FollowResult> {
+  const followingId = await getUserIdByUsername(username)
+  if (!followingId) return { ok: false, reason: 'unknown-user' }
+  if (followingId === followerId) return { ok: false, reason: 'self' }
+  if (on) {
+    await db
+      .insert(follow)
+      .values({ id: crypto.randomUUID(), followerId, followingId, createdAt: new Date() })
+      .onConflictDoNothing()
+  } else {
+    await db.delete(follow).where(and(eq(follow.followerId, followerId), eq(follow.followingId, followingId)))
+  }
+  const [{ n }] = (await db.select({ n: count() }).from(follow).where(eq(follow.followingId, followingId))) as [
+    { n: number },
+  ]
+  return { ok: true, followers: n }
+}
+
+/** Newest reviews from the people a user follows. */
+export async function getFeed(userId: string, limit: number) {
+  const rows = await db.query.review.findMany({
+    where: {
+      RAW: (t) =>
+        sql`${t.userId} in (select ${follow.followingId} from ${follow} where ${follow.followerId} = ${userId})`,
+    },
+    orderBy: { createdAt: 'desc' },
+    limit,
+    with: withRoomAndCinema,
+  })
+  const [{ n: following }] = (await db.select({ n: count() }).from(follow).where(eq(follow.followerId, userId))) as [
+    { n: number },
+  ]
+  return { following, reviews: (await withHelpful(rows.map(toReviewWithRoom), userId)) as ReviewWithRoom[] }
+}
+
+/** The most active reviewers this user doesn't follow yet: who to follow on an empty feed. */
+export async function getSuggestedReviewers(userId: string, limit: number) {
+  return db
+    .select({
+      username: sql<string>`${user.username}`,
+      reviews: count(review.id),
+      helpful:
+        sql<number>`(select count(*) from ${reviewHelpful} inner join ${review} as r on r.id = ${reviewHelpful.reviewId} where r.user_id = ${user.id})`.as(
+          'helpful',
+        ),
+    })
+    .from(user)
+    .innerJoin(review, eq(review.userId, user.id))
+    .where(
+      and(
+        ne(user.id, userId),
+        isNotNull(user.username),
+        sql`${user.id} not in (select ${follow.followingId} from ${follow} where ${follow.followerId} = ${userId})`,
+      ),
+    )
+    .groupBy(user.id)
+    .orderBy(desc(sql`helpful`), desc(count(review.id)))
+    .limit(limit)
 }
 
 // ---------- Aggregates ----------
@@ -375,12 +529,17 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export type CreateReviewResult =
-  | { ok: true; id: string; roomId: string }
+  | { ok: true; id: string; roomId: string; cinema: { id: string; city: string; state: State } }
   | { ok: false; reason: 'unknown-room' | 'duplicate' }
 
 export async function createReview(userId: string, input: NewReview): Promise<CreateReviewResult> {
-  const [exists] = await db.select({ id: room.id }).from(room).where(eq(room.id, input.roomId)).limit(1)
-  if (!exists) return { ok: false, reason: 'unknown-room' }
+  const [target] = await db
+    .select({ id: cinema.id, city: cinema.city, state: cinema.state })
+    .from(room)
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .where(eq(room.id, input.roomId))
+    .limit(1)
+  if (!target) return { ok: false, reason: 'unknown-room' }
 
   const now = new Date()
   const id = crypto.randomUUID()
@@ -404,7 +563,7 @@ export async function createReview(userId: string, input: NewReview): Promise<Cr
     if (isUniqueViolation(error)) return { ok: false, reason: 'duplicate' }
     throw error
   }
-  return { ok: true, id, roomId: input.roomId }
+  return { ok: true, id, roomId: input.roomId, cinema: target }
 }
 
 /** One of the user's own reviews, in the shape the review form edits. */
@@ -623,4 +782,69 @@ export async function isKnownTmdbId(tmdbId: number) {
   if (inFilms) return true
   const [inReviews] = await db.select({ id: review.id }).from(review).where(eq(review.filmTmdbId, tmdbId)).limit(1)
   return !!inReviews
+}
+
+/** Where a session's "buy" link goes, plus what the checkout_click event records about it. */
+export async function getShowtimeCheckout(id: string) {
+  const [row] = await db
+    .select({
+      checkoutUrl: showtime.checkoutUrl,
+      provider: providerTheater.provider,
+      cinemaId: showtime.cinemaId,
+      roomId: showtime.roomId,
+      filmId: showtime.filmId,
+      city: cinema.city,
+      state: cinema.state,
+    })
+    .from(showtime)
+    .innerJoin(providerTheater, eq(showtime.theaterId, providerTheater.id))
+    .innerJoin(cinema, eq(showtime.cinemaId, cinema.id))
+    .where(eq(showtime.id, id))
+    .limit(1)
+  return row ?? null
+}
+
+// ---------- Rankings (/melhores-salas) ----------
+
+/**
+ * How many "average" reviews a room's score starts with: a Bayesian average
+ * pulls rooms with few reviews toward the site-wide mean, so one 5-🔦 review
+ * doesn't outrank thirty 4.6s.
+ */
+const PRIOR_REVIEWS = 3
+
+/** Reviewed rooms ranked by Bayesian score, for a city and/or format (or the whole country). */
+export async function rankRooms(filter: { city?: string; state?: State; format?: Format }, limit: number) {
+  const prior = sql`(select avg(${review.rating}) from ${review})`
+  const score = sql`(${PRIOR_REVIEWS} * ${prior} + ${roomStats.average} * ${roomStats.reviewCount}) / (${PRIOR_REVIEWS} + ${roomStats.reviewCount})`
+  const rows = await selectSummaries(
+    and(
+      isNotNull(roomStats.reviewCount),
+      filter.city ? eq(cinema.city, filter.city) : undefined,
+      filter.state ? eq(cinema.state, filter.state) : undefined,
+      filter.format ? eq(room.format, filter.format) : undefined,
+    ),
+  )
+    .orderBy(desc(score), desc(roomStats.reviewCount))
+    .limit(limit)
+  return rows.map(toSummary)
+}
+
+/**
+ * Every (city, format) pair that has reviewed rooms, with counts: which ranking
+ * pages exist. Drives the /melhores-salas index, the chips and the sitemap.
+ */
+export async function getRankingIndex() {
+  return db
+    .select({
+      city: cinema.city,
+      state: cinema.state,
+      format: room.format,
+      rooms: count(),
+      reviews: sql<number>`sum(${roomStats.reviewCount})`,
+    })
+    .from(room)
+    .innerJoin(cinema, eq(room.cinemaId, cinema.id))
+    .innerJoin(roomStats, eq(roomStats.roomId, room.id))
+    .groupBy(cinema.city, cinema.state, room.format)
 }

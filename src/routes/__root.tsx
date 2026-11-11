@@ -5,7 +5,15 @@ import { getViewer } from '~/functions/session.functions'
 import { authClient } from '~/lib/auth-client'
 import { SITE_URL } from '~/lib/site'
 import appCss from '~/styles.css?url'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { Toaster } from '~/components/ui/sonner'
 
 export const Route = createRootRoute({
@@ -90,7 +98,6 @@ function RootComponent() {
 
 function SiteHeader() {
   const { viewer } = useRouteContext({ from: '__root__' })
-  const router = useRouter()
 
   return (
     <header className="site-header">
@@ -105,28 +112,14 @@ function SiteHeader() {
           <Link to="/cinemas" activeProps={{ className: 'active' }}>
             Explorar
           </Link>
+          <Link to="/melhores-salas" activeProps={{ className: 'active' }}>
+            Melhores salas
+          </Link>
           <Link to="/nearby" activeProps={{ className: 'active' }}>
             Perto de mim
           </Link>
           {viewer ? (
-            <>
-              <Link to="/users/$username" params={{ username: viewer.username }} activeProps={{ className: 'active' }}>
-                @{viewer.username}
-              </Link>
-              <Link to="/account" activeProps={{ className: 'active' }}>
-                Conta
-              </Link>
-              <button
-                type="button"
-                className="link-button"
-                onClick={async () => {
-                  await authClient.signOut()
-                  await router.invalidate()
-                }}
-              >
-                Sair
-              </button>
-            </>
+            <AccountMenu username={viewer.username} />
           ) : (
             <>
               <Link to="/sign-in" search={{ mode: 'login' }} activeOptions={{ includeSearch: false }}>
@@ -142,5 +135,43 @@ function SiteHeader() {
         </nav>
       </div>
     </header>
+  )
+}
+
+/** Who you are, on the right; your pages and "Sair" live in its menu rather than beside Explorar. */
+function AccountMenu({ username }: { username: string }) {
+  const router = useRouter()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="account-trigger">
+        <span className="avatar" aria-hidden="true">
+          {username.slice(0, 1).toUpperCase()}
+        </span>
+        @{username}
+        <ChevronDown size={14} aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem asChild>
+          <Link to="/feed">Seguindo</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/users/$username" params={{ username }}>
+            Meu perfil
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/account">Conta</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={async () => {
+            await authClient.signOut()
+            await router.invalidate()
+          }}
+        >
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

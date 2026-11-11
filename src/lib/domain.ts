@@ -163,6 +163,10 @@ export type Review = {
   body: string
   tags: Tag[]
   createdAt: string // ISO
+  /** How many readers marked it "útil". */
+  helpful: number
+  /** Whether the signed-in viewer is one of them. */
+  markedHelpful: boolean
 }
 
 export type RoomSummary = Room & {
@@ -253,3 +257,17 @@ export function timeZoneOf(state: State) {
   if (state === 'MT' || state === 'MS') return 'America/Cuiaba'
   return 'America/Sao_Paulo'
 }
+
+/** URL slug for a city, with its state so namesakes don't collide: "São Paulo", "SP" → "sao-paulo-sp". */
+export function citySlug(city: string, state: State) {
+  const name = city
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+  return `${name}-${state.toLowerCase()}`
+}
+
+/** The whole country, in /melhores-salas/<place> URLs. */
+export const NATIONAL_SLUG = 'brasil'

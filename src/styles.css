@@ -151,6 +151,23 @@
   .site-nav a:hover {
     color: var(--text);
   }
+  .account-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .account-trigger:hover,
+  .account-trigger[data-state='open'] {
+    border-color: var(--amber);
+  }
   .link-button {
     background: none;
     border: 0;
@@ -385,6 +402,18 @@
     gap: 20px;
     align-items: center;
   }
+  .profile-social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .profile-social strong {
+    color: var(--text);
+  }
 
   .tags {
     list-style: none;
@@ -424,6 +453,41 @@
     cursor: not-allowed;
   }
 
+  .suggestions {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+    display: grid;
+    gap: 12px;
+  }
+  .suggestions li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9rem;
+  }
+  .ranking {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+  }
+  .ranking li {
+    position: relative;
+  }
+  .ranking-position {
+    position: absolute;
+    z-index: 1;
+    top: -10px;
+    left: -8px;
+    min-width: 38px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--amber);
+    color: var(--ink);
+    font: 900 0.95rem var(--display);
+    text-align: center;
+    box-shadow: 0 4px 12px #0006;
+  }
   .chip-list {
     list-style: none;
     padding: 0;
@@ -442,6 +506,11 @@
   }
   .chip:hover {
     border-color: var(--amber);
+  }
+  .chip.active {
+    border-color: var(--amber);
+    background: var(--amber);
+    color: var(--ink);
   }
 
   /* Explore */
@@ -1070,6 +1139,7 @@
   }
   .review-actions {
     display: flex;
+    align-items: center;
     gap: 16px;
     margin: 12px 0 0;
     font-size: 0.82rem;
@@ -1078,6 +1148,27 @@
   .review-actions .link-button {
     color: var(--ink-soft);
     text-decoration: underline dotted;
+  }
+  .review-actions .review-helpful {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border: 1px solid color-mix(in srgb, var(--ink-soft) 40%, transparent);
+    border-radius: 999px;
+    background: none;
+    color: var(--ink-soft);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .review-actions span.review-helpful {
+    cursor: default;
+  }
+  .review-actions :is(a, button).review-helpful:hover,
+  .review-actions .review-helpful[aria-pressed='true'] {
+    border-color: var(--ticket-red);
+    color: var(--ticket-red);
   }
   .review-body {
     margin: 10px 0;
@@ -1235,7 +1326,8 @@
     .site-nav button {
       white-space: nowrap;
     }
-    .site-nav [data-slot='button'] {
+    .site-nav [data-slot='button'],
+    .site-nav .account-trigger {
       margin-left: auto;
     }
   }

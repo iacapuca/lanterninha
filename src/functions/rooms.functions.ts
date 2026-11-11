@@ -8,10 +8,17 @@ import { getRequest, getRequestHeaders } from '@tanstack/react-start/server'
 import { earnedBadges } from '~/lib/domain'
 import { exploreSearchSchema, roomSearchSchema } from '~/lib/schemas'
 import { auth } from '~/server/auth.server'
+import { track } from '~/server/analytics.server'
 import { slowQuery } from '~/server/latency.server'
 import * as store from '~/server/store.server'
 
 const byId = z.object({ id: z.string().min(1).max(80) })
+
+/** The signed-in reader, if any: review lists say which ones they marked "útil". */
+async function viewerId() {
+  const session = await auth.api.getSession({ headers: getRequestHeaders() })
+  return session?.user.id
+}
 
 export const getHome = createServerFn({ method: 'GET' }).handler(async () => {
   const [topRooms, totals] = await Promise.all([store.getTopRooms(6), store.getTotals()])
@@ -23,13 +30,17 @@ export const getRecentReviews = createServerFn({ method: 'GET' })
   .validator(z.object({ limit: z.number().int().min(1).max(30) }))
   .handler(async ({ data }) => {
     await slowQuery()
-    return store.getRecentReviews(data.limit)
+    return store.getRecentReviews(data.limit, await viewerId())
   })
 
 export const searchCinemas = createServerFn({ method: 'GET' })
   .validator(exploreSearchSchema)
   .handler(async ({ data }) => {
     const [result, cities] = await Promise.all([store.searchCinemas(data), store.listCities(data.state)])
+    // What people look for and can't find; first pages of real searches only.
+    if (result.total === 0 && (data.q || data.city)) {
+      track('search_empty', { q: data.q, city: data.city, state: data.state, format: data.format })
+    }
     return { ...result, cities }
   })
 
@@ -38,8 +49,7 @@ export const getRoom = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const room = await store.getRoom(data.id)
     if (!room) throw notFound()
-    const session = await auth.api.getSession({ headers: getRequestHeaders() })
-    const facts = await store.getRoomFactVotes(data.id, session?.user.id)
+    const facts = await store.getRoomFactVotes(data.id, await viewerId())
     return { ...room, facts }
   })
 
@@ -54,7 +64,7 @@ export const getRoomReviews = createServerFn({ method: 'GET' })
   .validator(byId.extend(roomSearchSchema.shape))
   .handler(async ({ data }) => {
     await slowQuery()
-    return store.getRoomReviews(data.id, data.reviews)
+    return store.getRoomReviews(data.id, data.reviews, await viewerId())
   })
 
 export const getCinema = createServerFn({ method: 'GET' })
@@ -68,13 +78,12 @@ export const getCinema = createServerFn({ method: 'GET' })
 export const getUserProfile = createServerFn({ method: 'GET' })
   .validator(z.object({ username: z.string().min(1).max(24) }))
   .handler(async ({ data }) => {
-    const [profile, userId] = await Promise.all([
-      store.getUserProfile(data.username),
-      store.getUserIdByUsername(data.username),
-    ])
-    if (!profile || !userId) throw notFound()
+    const viewer = await viewerId()
+    const profile = await store.getUserProfile(data.username, viewer)
+    if (!profile) throw notFound()
+    const { userId, ...rest } = profile
     const stats = await store.getContributionStats(userId)
-    return { ...profile, stats, badges: earnedBadges(stats) }
+    return { ...rest, isViewer: userId === viewer, stats, badges: earnedBadges(stats) }
   })
 
 /**

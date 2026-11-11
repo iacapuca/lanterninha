@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { Link, createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
-import { createReview, getOwnReview, updateReview } from '~/functions/reviews.functions'
+import { createReview, getOwnReview, trackReviewDraftStarted, updateReview } from '~/functions/reviews.functions'
 import { getRoom } from '~/functions/rooms.functions'
 import { CRITERIA, CRITERION_IDS, TAGS, type Criterion, type Tag } from '~/lib/domain'
 import { newReviewSchema } from '~/lib/schemas'
@@ -100,7 +100,16 @@ function ReviewPage() {
     }
   }, [draftKey, draft, editing])
 
-  const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }))
+  // Analytics: the first touch on a new review, so drafts can be compared with published reviews.
+  const trackDraftStarted = useServerFn(trackReviewDraftStarted)
+  const draftTracked = useRef(false)
+  const update = (patch: Partial<Draft>) => {
+    if (!editing && !draftTracked.current) {
+      draftTracked.current = true
+      trackDraftStarted({ data: { roomId: room.id } }).catch(() => {})
+    }
+    setDraft((d) => ({ ...d, ...patch }))
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()

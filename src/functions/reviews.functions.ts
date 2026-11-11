@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { earnedBadges } from '~/lib/domain'
 import { newReviewSchema, roomFactVoteSchema, updateReviewSchema } from '~/lib/schemas'
+import { track } from '~/server/analytics.server'
 import * as store from '~/server/store.server'
 import { requireSession } from './auth.middleware'
 
@@ -24,6 +25,8 @@ export const createReview = createServerFn({ method: 'POST' })
       throw new Error('Não foi possível publicar agora. Tente de novo em instantes.')
     }
     if (!result.ok) throw new Error(ERRORS[result.reason])
+    const { cinema } = result
+    track('review_created', { roomId: result.roomId, cinemaId: cinema.id, city: cinema.city, state: cinema.state })
     return { id: result.id, roomId: result.roomId }
   })
 
@@ -35,6 +38,7 @@ export const voteRoomFact = createServerFn({ method: 'POST' })
     const before = earnedBadges(await store.getContributionStats(context.userId))
     const result = await store.voteRoomFact(context.userId, data.roomId, data.field, data.value)
     if (!result.ok) throw new Error(ERRORS[result.reason])
+    track('fact_voted', { roomId: data.roomId, field: data.field, value: data.value })
     const after = earnedBadges(await store.getContributionStats(context.userId))
     return { newBadges: after.filter((b) => !before.includes(b)) }
   })
@@ -67,4 +71,11 @@ export const deleteReview = createServerFn({ method: 'POST' })
     const deleted = await store.deleteReview(context.userId, data.id)
     if (!deleted) throw new Error('Avaliação não encontrada.')
     return deleted
+  })
+
+/** The review form calls this once, when someone starts typing a new review (not an edit). */
+export const trackReviewDraftStarted = createServerFn({ method: 'POST' })
+  .validator(z.object({ roomId: z.string().min(1).max(80) }))
+  .handler(({ data }) => {
+    track('review_draft_started', { roomId: data.roomId })
   })

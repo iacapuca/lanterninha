@@ -11,7 +11,7 @@ import { Programme, ProgrammeSkeleton } from '~/components/programme'
 import { Button } from '~/components/ui/button'
 import { shareMeta } from '~/lib/site'
 
-const REVIEW_SORT_LABELS = { recent: 'Recentes', best: 'Melhores', worst: 'Piores' } as const
+const REVIEW_SORT_LABELS = { recent: 'Recentes', helpful: 'Mais úteis', best: 'Melhores', worst: 'Piores' } as const
 
 // SSR: full, with streaming. The room itself is awaited (it drives <head>,
 // the 404 status and the hero), while stats and reviews are deferred and
